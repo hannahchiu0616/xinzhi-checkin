@@ -454,7 +454,7 @@ function showSettings() {
     ["開始計算日", normDate(SETTINGS.startDate) || "—"],
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
-    ["成員", `${MODEL.members.length} 人${parseLines(SETTINGS.members).length ? "" : "（尚未在「網站設定」填成員，暫用表單分頁表頭的名字）"}<br>
+    ["成員", `${MODEL.members.length} 人<br>
       <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.join ? `（${m.join.slice(5).replace("-", "/")} 加入）` : "")).join("、")}</span>`],
     ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
