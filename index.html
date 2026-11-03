@@ -149,6 +149,16 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <p class="hint">設定放在試算表的「網站設定」分頁，只有試算表的編輯者可以修改，改完回這裡按「重新整理」。
       <a id="sheetLink" target="_blank" rel="noopener">開啟試算表</a></p>
   </div>
+
+  <div class="card">
+    <h2>編輯者：怎麼修改</h2>
+    <ol class="rules">
+      <li><b>加人</b>：在「網站設定」的「成員」欄往下加一列名字，「加入日期」填他開始要寫的那天（加入前的日子不會罰）。名字要和他填表單的名字一模一樣。</li>
+      <li><b>有人退出</b>：把那一列刪掉。</li>
+      <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
+      <li><b>罰款、每月免死次數、開始計算日</b>：改第 2 列的數字。</li>
+    </ol>
+  </div>
   </section>
 </div>
 
@@ -206,15 +216,20 @@ function tableToRows(table) {
   return [table.cols.map(c => c.label || ""), ...table.rows.map(r => (r.c || []).map(cell))];
 }
 
-// 「網站設定」分頁：第一列是標題 開始計算日｜每人每月免死次數｜每次罰款｜（空）｜名字｜大堂課第一天｜大堂課最後一天
+// 「網站設定」分頁：第一列是標題
+// 開始計算日｜每人每月免死次數｜每次罰款｜（空）｜名字｜大堂課第一天｜大堂課最後一天｜（空）｜成員｜加入日期
 // 找不到這個分頁時 Google 會回傳第一個分頁，所以靠標題判斷是不是設定分頁
 function readSettingsTab(rows) {
   const h = rows[0].map(x => x.trim());
   const col = re => h.findIndex(x => re.test(x));
   const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
   const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天|結束日/);
-  if ([iStart, iFree, iFine, iName].every(i => i < 0)) return null;
+  const iMember = col(/^成員$/), iJoin = col(/加入日期/);
+  if ([iStart, iFree, iFine, iName, iMember].every(i => i < 0)) return null;
   const s = {}, first = rows[1] || [];
+  if (iMember >= 0)
+    s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
+      .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : ""].join(",")).join("\n");
   if (iStart >= 0 && first[iStart]) s.startDate = first[iStart];
   if (iFree >= 0 && first[iFree] !== "" && first[iFree] != null) s.freePerMonth = first[iFree];
   if (iFine >= 0 && first[iFine]) s.fine = first[iFine];
@@ -439,7 +454,8 @@ function showSettings() {
     ["開始計算日", normDate(SETTINGS.startDate) || "—"],
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
-    ["成員", `${MODEL.members.length} 人（試算表表頭「名字(免死)」欄位）`],
+    ["成員", `${MODEL.members.length} 人${parseLines(SETTINGS.members).length ? "" : "（尚未在「網站設定」填成員，暫用表單分頁表頭的名字）"}<br>
+      <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.join ? `（${m.join.slice(5).replace("-", "/")} 加入）` : "")).join("、")}</span>`],
     ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
