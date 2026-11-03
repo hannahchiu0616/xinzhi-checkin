@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心之使者打卡</title>
+<style>
+:root{
+  --bg:#faf7f2; --card:#ffffff; --ink:#2b2622; --muted:#7a7068; --line:#e8e1d8;
+  --accent:#b5651d; --ok:#2e7d4f; --ok-bg:#e3f2e8; --bad:#c0392b; --bad-bg:#fbe5e2;
+  --free:#6b5fb5; --free-bg:#ece9f8; --late:#b7791f; --late-bg:#fdf1dc; --none-bg:#f3efe9;
+  --cov:#3d7ea6; --cov-bg:#e2eff6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1916; --card:#262220; --ink:#f0ebe5; --muted:#a59a90; --line:#3a3430;
+    --accent:#e0954f; --ok:#6fcf97; --ok-bg:#1f3a2a; --bad:#ff8a7a; --bad-bg:#4a2420;
+    --free:#b3a8f0; --free-bg:#302b4a; --late:#f0c060; --late-bg:#45381c; --none-bg:#2e2a27;
+    --cov:#8cc4e6; --cov-bg:#1d3442;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c1916; --card:#262220; --ink:#f0ebe5; --muted:#a59a90; --line:#3a3430;
+  --accent:#e0954f; --ok:#6fcf97; --ok-bg:#1f3a2a; --bad:#ff8a7a; --bad-bg:#4a2420;
+  --free:#b3a8f0; --free-bg:#302b4a; --late:#f0c060; --late-bg:#45381c; --none-bg:#2e2a27;
+  --cov:#8cc4e6; --cov-bg:#1d3442;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+h1{font-size:1.6rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toolbar .spacer{flex:1}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+select,input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{width:100%;min-height:90px;font-family:ui-monospace,Consolas,monospace;font-size:.9rem}
+input[type=text],input[type=url]{width:100%}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat .k{color:var(--muted);font-size:.85rem}
+.stat .v{font-size:1.6rem;font-weight:700}
+.stat .v.money{color:var(--bad)}
+.banner{padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:.92rem}
+.banner.info{background:var(--free-bg);color:var(--free)}
+.banner.err{background:var(--bad-bg);color:var(--bad)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.85rem}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.money{color:var(--bad);font-weight:700}
+td.zero{color:var(--ok);font-weight:700}
+.grid th,.grid td{padding:3px;text-align:center;border:0}
+.grid th.name,.grid td.name{text-align:left;padding-right:10px;position:sticky;left:0;background:var(--card);z-index:1}
+.c{display:inline-block;width:26px;height:26px;line-height:26px;border-radius:6px;font-size:.78rem;font-weight:700;font-style:normal}
+.c.ok{background:var(--ok-bg);color:var(--ok)}
+.c.miss{background:var(--bad-bg);color:var(--bad)}
+.c.late{background:var(--late-bg);color:var(--late)}
+.c.cov{background:var(--cov-bg);color:var(--cov)}
+.c.free{background:var(--free-bg);color:var(--free)}
+.c.na{background:var(--none-bg);color:var(--muted);opacity:.6}
+.c.now{background:var(--none-bg);color:var(--accent);outline:1px dashed var(--accent);outline-offset:-1px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted);margin-top:12px;align-items:center}
+.legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.legend .c{width:22px;height:22px;line-height:22px;font-size:.72rem;flex:none;text-align:center}
+.c.na{border:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:12px 0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+a{color:var(--accent)}
+.tabs{display:flex;gap:4px;margin:0 0 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;padding-top:6px}
+.tabs button{background:transparent;color:var(--muted);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 16px;font-weight:600;flex:1;max-width:160px}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.panel[hidden]{display:none}
+details summary{cursor:pointer;font-weight:600}
+.field{margin-top:14px}
+.field label{display:block;font-weight:600;margin-bottom:4px}
+.hint{color:var(--muted);font-size:.85rem;margin:4px 0 0}
+.rules{font-size:.9rem;color:var(--muted);margin:0;padding-left:20px}
+h2{font-size:1.1rem;margin:0 0 12px}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>心之使者打卡</h1>
+  <p class="sub">觀心書每日回報狀況與功德金結算 · 計算區間為當日中午 12:00 至隔日中午 12:00</p>
+
+  <div id="banner"></div>
+
+  <div class="card toolbar">
+    <label for="month">月份</label>
+    <select id="month"></select>
+    <span class="spacer"></span>
+    <span id="updated" class="hint"></span>
+    <button id="excel" class="ghost">下載 Excel</button>
+    <button id="reload">重新整理</button>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="daily">每日回報</button>
+    <button role="tab" data-tab="summary">本月結算</button>
+    <button role="tab" data-tab="settings">設定</button>
+  </nav>
+
+  <section class="panel" data-panel="summary">
+  <div class="stats" id="stats"></div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>本月結算</h2>
+    <div class="scroll"><table id="summary"></table></div>
+  </div>
+  </section>
+
+  <section class="panel" data-panel="daily">
+  <div class="card">
+    <h2>定課規則</h2>
+    <ol class="rules">
+        <li>每日寫觀心書，沒寫一篇罰 50 元功德金</li>
+        <li>計算時間為當日中午 12 點至隔日中午 12 點，以表單「時間戳記」判斷是哪一天的觀心書</li>
+        <li>隔天中午 12 點前 po 出並填表單回報；沒填表單視同沒寫</li>
+        <li>每人每月有 4 次免死金牌，第 5 次缺交起才罰款；一個月收一次功德金</li>
+        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天）</li>    </ol>
+  </div>
+
+  <div class="card">
+    <h2>每日回報</h2>
+    <div class="scroll"><table class="grid" id="grid"></table></div>
+    <div class="legend">
+      <span><i class="c ok">✓</i>已回報</span>
+      <span id="legendCov"><i class="c cov">抵</i>缺交，用每月免死次數抵掉</span>
+      <span><i class="c miss">✗</i>缺交（罰 50 元）</span>
+      <span><i class="c late">遲</i>超過隔日 12:00（視同沒寫）</span>
+      <span><i class="c free">免</i>大堂課免死金牌</span>
+      <span><i class="c now">…</i>還在計算區間內</span>
+      <span><i class="c na">·</i>不計算</span>
+    </div>
+  </div>
+  </section>
+
+  <section class="panel" data-panel="settings">
+  <div class="card">
+    <h2>目前設定</h2>
+    <dl class="kv" id="settingsView"></dl>
+    <p class="hint">設定放在試算表的「網站設定」分頁，只有試算表的編輯者可以修改，改完回這裡按「重新整理」。
+      <a id="sheetLink" target="_blank" rel="noopener">開啟試算表</a></p>
+  </div>
+  </section>
+</div>
+
+<script>
+/* ===== 資料來源與預設值（試算表「網站設定」分頁的內容會蓋過這裡） ===== */
+const CONFIG = {
+  sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
+  settingsTab: "網站設定",
+  startDate: "2026-11-01",
+  fine: 50,
+  freePerMonth: 4,
+  members: "",
+  exemptions: "",
+};
+/* ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return key(d); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+/* ---------- 讀取試算表 ---------- */
+// Google 試算表不允許跨網域 fetch，改用 gviz 的 JSONP 方式讀取
+let cbSeq = 0;
+function loadSheet(url, sheetName) {
+  const id = (url.match(/\/spreadsheets\/d\/([\w-]+)/) || [])[1];
+  if (!id || id === "e") return Promise.reject(new Error("看不懂這個試算表連結，請貼上試算表的編輯或檢視網址。"));
+  const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1] || "0";
+  const which = sheetName ? `sheet=${encodeURIComponent(sheetName)}` : `gid=${gid}`;
+  return new Promise((resolve, reject) => {
+    const cb = `gviz_${Date.now()}_${cbSeq++}`;
+    const s = document.createElement("script");
+    const timer = setTimeout(() => { done(); reject(new Error("讀取逾時。請確認試算表共用設定為「知道連結的任何人都能檢視」。")); }, 20000);
+    function done() { clearTimeout(timer); delete window[cb]; s.remove(); }
+    window[cb] = data => {
+      done();
+      if (data.status === "error") reject(new Error("試算表回傳錯誤：" + (data.errors || []).map(e => e.detailed_message || e.message).join("；")));
+      else resolve(tableToRows(data.table));
+    };
+    s.onerror = () => { done(); reject(new Error("無法連到 Google 試算表，請檢查網路。")); };
+    s.src = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json;responseHandler:${cb}&headers=1&${which}&_=${Date.now()}`;
+    document.head.appendChild(s);
+  });
+}
+
+function tableToRows(table) {
+  const cell = c => {
+    if (!c || c.v == null) return "";
+    const m = typeof c.v === "string" && c.v.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
+    if (m) return `${m[1]}/${+m[2] + 1}/${m[3]} ${m[4] || 0}:${pad(m[5] || 0)}:${pad(m[6] || 0)}`;
+    return c.f != null ? String(c.f) : String(c.v);
+  };
+  return [table.cols.map(c => c.label || ""), ...table.rows.map(r => (r.c || []).map(cell))];
+}
+
+// 「網站設定」分頁：第一列是標題 開始計算日｜每人每月免死次數｜每次罰款｜（空）｜名字｜大堂課第一天｜大堂課最後一天
+// 找不到這個分頁時 Google 會回傳第一個分頁，所以靠標題判斷是不是設定分頁
+function readSettingsTab(rows) {
+  const h = rows[0].map(x => x.trim());
+  const col = re => h.findIndex(x => re.test(x));
+  const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
+  const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天|結束日/);
+  if ([iStart, iFree, iFine, iName].every(i => i < 0)) return null;
+  const s = {}, first = rows[1] || [];
+  if (iStart >= 0 && first[iStart]) s.startDate = first[iStart];
+  if (iFree >= 0 && first[iFree] !== "" && first[iFree] != null) s.freePerMonth = first[iFree];
+  if (iFine >= 0 && first[iFine]) s.fine = first[iFine];
+  if (iName >= 0 && iFrom >= 0)
+    s.exemptions = rows.slice(1).filter(r => (r[iName] || "").trim() && r[iFrom])
+      .map(r => [r[iName].trim(), r[iFrom], iTo >= 0 ? r[iTo] : ""].join(",")).join("\n");
+  return s;
+}
+
+// 支援 "2026/11/3 下午 1:23:45"、"2026-11-03 13:23"、"11/3/2026 1:23:45 PM"
+function parseDateTime(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  let y, mo, d, rest, m;
+  if ((m = s.match(/^(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})日?(.*)$/))) [, y, mo, d, rest] = m;
+  else if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(.*)$/))) [, mo, d, y, rest] = m;
+  else return null;
+  let h = 0, mi = 0, se = 0;
+  const t = rest.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (t) {
+    h = +t[1]; mi = +t[2]; se = +(t[3] || 0);
+    const pm = /下午|PM|晚上|中午/i.test(rest), am = /上午|AM|早上|凌晨/i.test(rest);
+    if (pm && h < 12) h += 12;
+    if (am && h === 12) h = 0;
+  }
+  return new Date(+y, +mo - 1, +d, h, mi, se);
+}
+function normDate(s) { const p = parseDateTime(s); return p ? key(p) : ""; }
+
+/* ---------- 換算每筆回覆 ---------- */
+function toRecords(rows) {
+  const header = rows[0].map(h => h.trim());
+  const tCol = Math.max(0, header.findIndex(h => /時間戳記|timestamp/i.test(h)));
+  const nCol = header.findIndex((h, i) => i !== tCol && /^(姓名|名字|稱呼|名稱|name)$/i.test(h));
+  const dCol = header.findIndex(h => /^(回報|觀心書|統計)?日期$/.test(h));
+  if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認選到的是表單回應分頁。");
+  const headerMembers = header.map(h => (h.match(/^(.+?)\s*[（(]免死[)）]$/) || [])[1]).filter(Boolean);
+
+  const recs = [];
+  for (const r of rows.slice(1)) {
+    const raw = (r[nCol] || "").trim();
+    const ts = parseDateTime(r[tCol]);
+    if (!raw || !ts) continue;
+    const tag = (raw.match(/[（(]([^)）]*)[)）]/) || [])[1] || "";
+    if (/重複|練習/.test(tag)) continue;
+    const name = raw.replace(/\s*[（(][^)）]*[)）]\s*/g, "").trim();
+    let day = key(new Date(ts.getTime() - 12 * 3600e3)), late = false;
+    const claimed = dCol >= 0 ? normDate(r[dCol]) : "";
+    if (/遲交/.test(tag)) { day = addDays(day, -1); late = true; }
+    else if (claimed) {
+      day = claimed;
+      const deadline = fromKey(addDays(day, 1)); deadline.setHours(12);
+      late = ts > deadline;
+    }
+    recs.push({ name, day, late });
+  }
+  return { recs, headerMembers };
+}
+
+function parseLines(text) {
+  return (text || "").split(/\n/).map(l => l.split(/[,，\t]/).map(x => x.trim())).filter(p => p[0]);
+}
+
+/* ---------- 建立計算模型 ---------- */
+function build({ recs, headerMembers }, s) {
+  const now = new Date();
+  const shifted = new Date(now.getTime() - 12 * 3600e3);
+  const current = key(shifted);            // 目前還在進行中的那一天
+  const start = normDate(s.startDate);
+
+  const byName = {};
+  for (const r of recs) {
+    const p = byName[r.name] ||= { days: {}, first: r.day };
+    if (r.day < p.first) p.first = r.day;
+    const prev = p.days[r.day];
+    if (!prev || (prev === "late" && !r.late)) p.days[r.day] = r.late ? "late" : "ok";
+  }
+
+  let members = parseLines(s.members).map(([n, j]) => ({ name: n, join: normDate(j) }));
+  if (!members.length) members = headerMembers.map(n => ({ name: n, join: "" }));
+  if (!members.length) members = Object.keys(byName).map(n => ({ name: n, join: byName[n].first }));
+
+  const ex = parseLines(s.exemptions).map(([n, a, b]) => {
+    const st = normDate(a), en = normDate(b) || st;
+    return st ? { name: n, from: addDays(st, -1), to: en } : null;
+  }).filter(Boolean);
+
+  function status(m, day) {
+    if (day > current) return "na";
+    if ((start && day < start) || (m.join && day < m.join)) return "na";
+    const got = byName[m.name]?.days[day];
+    if (got === "ok") return "ok";
+    if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
+    if (day === current) return "now";
+    return got === "late" ? "late" : "miss";
+  }
+
+  const firstDay = start || recs.map(r => r.day).sort()[0] || current;
+  const months = [];
+  for (let d = fromKey(firstDay.slice(0, 8) + "01"); key(d) <= current; d.setMonth(d.getMonth() + 1))
+    months.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+  if (!months.length) months.push(current.slice(0, 7));
+
+  const known = new Set(members.map(m => m.name));
+  const unknown = Object.keys(byName).filter(n => !known.has(n) && (!start || Object.keys(byName[n].days).some(d => d >= start)));
+  return { members, status, months, unknown };
+}
+
+function monthDays(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${ym}-${pad(i + 1)}`);
+}
+
+// 依日期順序計算，每月前 N 次缺交（含遲交）用免死次數抵掉
+function monthDetail(m, ym) {
+  const free = Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
+  const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, cells: [] };
+  for (const d of monthDays(ym)) {
+    let st = MODEL.status(m, d);
+    if ((st === "miss" || st === "late") && t.cov < free) { t.cov++; t.cells.push({ d, st: "cov", was: st }); continue; }
+    if (st in t) t[st]++;
+    t.cells.push({ d, st });
+  }
+  t.owe = (t.miss + t.late) * (+SETTINGS.fine || 50);
+  return t;
+}
+
+let MODEL = null, SETTINGS = { ...CONFIG }, ROWS = [];
+
+function render() {
+  const ym = $("month").value || MODEL.months[MODEL.months.length - 1];
+  const days = monthDays(ym);
+  ROWS = MODEL.members.map(m => {
+    const t = monthDetail(m, ym);
+    const total = MODEL.months.reduce((a, mm) => a + monthDetail(m, mm).owe, 0);
+    return { m, t, total };
+  }).sort((a, b) => b.t.owe - a.t.owe || a.m.name.localeCompare(b.m.name, "zh-Hant"));
+
+  const sum = ROWS.reduce((a, r) => a + r.t.owe, 0);
+  const sumAll = ROWS.reduce((a, r) => a + r.total, 0);
+  const perfect = ROWS.filter(r => r.t.miss + r.t.late + r.t.cov === 0).length;
+  const reports = ROWS.reduce((a, r) => a + r.t.ok, 0);
+  $("stats").innerHTML = [
+    ["本月功德金合計", `$${sum.toLocaleString()}`, true],
+    ["本月全勤人數", `${perfect} / ${ROWS.length}`],
+    ["本月回報篇數", reports],
+    ["開始計算至今累計", `$${sumAll.toLocaleString()}`, true],
+  ].map(([k, v, money]) => `<div class="stat"><div class="k">${k}</div><div class="v ${money ? "money" : ""}">${v}</div></div>`).join("");
+
+  const free = parseInt(SETTINGS.freePerMonth, 10) || 0;
+  $("legendCov").hidden = !free;
+  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金</th><th class="num">累計</th></tr>` +
+    ROWS.map(({ m, t, total }) => {
+      const missAll = t.miss + t.late + t.cells.filter(c => c.was === "miss").length;
+      const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
+      return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll - lateAll}</td><td class="num">${lateAll}</td>
+      ${free ? `<td class="num">${t.cov} / ${free}</td>` : ""}<td class="num">${t.free}</td>
+      <td class="num ${t.owe ? "money" : "zero"}">$${t.owe}</td><td class="num">$${total}</td></tr>`;
+    }).join("");
+
+  const wk = "日一二三四五六";
+  const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·" };
+  const tip = { ok: "已回報", miss: "缺交", late: "遲交", cov: "用免死次數抵掉", free: "大堂課免死金牌", now: "計算中", na: "不計算" };
+  $("grid").innerHTML = `<tr><th class="name">成員</th>${days.map(d => `<th>${+d.slice(8)}<br><small>${wk[fromKey(d).getDay()]}</small></th>`).join("")}</tr>` +
+    ROWS.map(({ m, t }) => `<tr><td class="name">${esc(m.name)}</td>${t.cells.map(c =>
+      `<td><i class="c ${c.st}" title="${c.d.slice(5).replace("-", "/")} ${tip[c.st]}${c.was === "late" ? "（遲交）" : ""}">${sym[c.st]}</i></td>`).join("")}</tr>`).join("");
+}
+
+function downloadExcel() {
+  const ym = $("month").value;
+  const days = monthDays(ym);
+  const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "" };
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", "累計", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
+  for (const { m, t, total } of ROWS)
+    lines.push([m.name, t.ok, t.miss + t.late + t.cov, t.cov, t.free, t.owe, total, ...t.cells.map(c => label[c.st])]);
+  const csv = "﻿" + lines.map(l => l.map(q).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `心之使者打卡_${ym}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function load() {
+  $("banner").innerHTML = "";
+  $("reload").disabled = true;
+  const notes = [];
+  try {
+    const [rows, setRows] = await Promise.all([
+      loadSheet(CONFIG.sheetUrl),
+      loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab).catch(() => null),
+    ]);
+    const fromSheet = setRows && readSettingsTab(setRows);
+    if (!fromSheet) notes.push(`試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
+    SETTINGS = { ...CONFIG, ...(fromSheet || {}) };
+    if (rows.length < 2) throw new Error("試算表沒有資料。");
+    MODEL = build(toRecords(rows), SETTINGS);
+  } catch (e) {
+    $("banner").innerHTML = `<div class="banner err">${esc(e.message)}</div>`;
+    return;
+  } finally {
+    $("reload").disabled = false;
+  }
+  if (MODEL.unknown.length) notes.push(`表單中有不在成員名單裡的名字，沒有計入：${MODEL.unknown.map(esc).join("、")}`);
+  if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
+  showSettings();
+
+  const sel = $("month"), keep = sel.value;
+  sel.innerHTML = MODEL.months.slice().reverse().map(m => `<option value="${m}">${m.replace("-", " 年 ")} 月</option>`).join("");
+  if (MODEL.months.includes(keep)) sel.value = keep;
+  $("updated").textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+  render();
+}
+
+function showSettings() {
+  const ex = parseLines(SETTINGS.exemptions).map(([n, a, b]) => {
+    const st = normDate(a), en = normDate(b) || st;
+    return st ? `${esc(n)}：${addDays(st, -1).slice(5).replace("-", "/")} ~ ${en.slice(5).replace("-", "/")}` : "";
+  }).filter(Boolean);
+  $("settingsView").innerHTML = [
+    ["開始計算日", normDate(SETTINGS.startDate) || "—"],
+    ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
+    ["每次罰款", `${+SETTINGS.fine || 50} 元`],
+    ["成員", `${MODEL.members.length} 人（試算表表頭「名字(免死)」欄位）`],
+    ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+
+function showTab(name) {
+  if (!document.querySelector(`[data-panel="${name}"]`)) name = "daily";
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== name);
+  document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
+showTab(location.hash.slice(1));
+
+$("sheetLink").href = CONFIG.sheetUrl;
+$("month").onchange = render;
+$("reload").onclick = load;
+$("excel").onclick = () => ROWS.length && downloadExcel();
+
+load();
+</script>
+</body>
+</html>
