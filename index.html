@@ -544,7 +544,13 @@ function build({ recs, headerMembers }, s) {
 
   const known = new Set(members.map(m => m.name));
   const unknown = Object.keys(byName).filter(n => !known.has(n) && (!start || Object.keys(byName[n].days).some(d => d >= start)));
-  return { members, status, months, unknown, never, pauses };
+  // 在某天以前就已經退出（沒寫回歸日期的退出，或成員期間已結束）
+  function exitedBefore(m, day) {
+    if (pauses.some(p => p.name === m.name && !p.back && p.from <= day)) return true;
+    const last = m.periods[m.periods.length - 1];
+    return !!(last && last.to && last.to < day);
+  }
+  return { members, status, months, unknown, never, pauses, exitedBefore };
 }
 
 function monthDays(ym) {
@@ -589,7 +595,8 @@ function render() {
   const days = monthDays(ym);
   const paid = paidMonth();
   const isPaid = false;   // 不在網站上顯示收款狀態
-  ROWS = MODEL.members.map(m => {
+  // 退出的人：退出那個月還顯示，下個月起名字就拿掉
+  ROWS = MODEL.members.filter(m => !MODEL.exitedBefore(m, ym + "-01")).map(m => {
     const t = monthDetail(m, ym);
     return { m, t };
   }).sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
