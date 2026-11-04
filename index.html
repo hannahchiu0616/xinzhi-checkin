@@ -120,6 +120,14 @@ table.edit tr.alt td{background:var(--none-bg)}
 table.edit tr.alt td:first-child{border-radius:8px 0 0 8px}
 table.edit tr.alt td:last-child{border-radius:0 8px 8px 0}
 table.edit tr.editing td{background:var(--late-bg)}
+/* 成員：一行好幾個人的小卡片 */
+table.edit.cards thead{display:none}
+table.edit.cards tbody{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+table.edit.cards tr{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 2px;background:var(--bg)}
+table.edit.cards tr.editing{border-color:var(--accent);background:var(--late-bg)}
+table.edit.cards td{display:block;padding:0;background:none !important}
+table.edit.cards td:first-child{flex:1;min-width:0}
+table.edit.cards input{min-width:0;border:0;background:transparent;padding:8px}
 table.edit tr.editing input{border-color:var(--accent)}
 table.edit input:disabled{background:transparent;border-color:transparent;color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1}
 .row-act{white-space:nowrap}
@@ -821,12 +829,12 @@ function secSettings() {
 }
 
 // 通用表格編輯：一列一筆，可以新增、刪除、排序，按儲存整份寫回去
-function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy, sortKey, locked }) {
+function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy, sortKey, locked, cards }) {
   const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
   $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
-    <div class="edit-actions" style="margin:0 0 10px"><button type="button" class="ghost" data-act="add">＋ 新增一列</button><button type="button" data-act="save">儲存</button></div>
+    <div class="edit-actions" style="margin:0 0 10px"><button type="button" class="ghost" data-act="add">${cards ? "＋ 新增成員" : "＋ 新增一列"}</button><button type="button" data-act="save">儲存</button></div>
     <p class="hint msg" id="secMsg" style="margin:0 0 8px"></p>
-    <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>`;
+    <div class="scroll"><table class="edit${cards ? " cards" : ""}"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>`;
   const tb = $("adminSec").querySelector("tbody");
   // locked：平常只顯示，按「修改」才能改那一列（新增的一列直接可以改）
   const addRow = (r, editing) => {
@@ -883,8 +891,8 @@ const nameCol = { label: "名字", list: "memberNames" };
 function secMembers() {
   // 只顯示名字；原本的加入／結束日期存檔時照舊保留，新增的人從今天開始算
   const old = DATA["成員"] || [], seen = new Set();
-  editor({ title: "成員", tab: "成員", rows: old.filter(r => !seen.has(r[0]) && seen.add(r[0])).map(r => [r[0]]), newRow: () => [""],
-    hint: "新增的人從今天開始算，排在最下面。要退出或休息請用「退出／休息」。",
+  editor({ title: "成員", tab: "成員", cards: true, rows: old.filter(r => !seen.has(r[0]) && seen.add(r[0])).map(r => [r[0]]), newRow: () => [""],
+    hint: "新增的人從今天開始算。要退出或休息請用「退出／休息」。",
     cols: [{ label: "名字" }],
     // 新加的人（畫面上在最上面）存檔時排到名單最後
     beforeSave: names => {
