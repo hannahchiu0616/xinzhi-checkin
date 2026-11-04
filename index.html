@@ -152,7 +152,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </section>
 
   <section class="panel" data-panel="report" hidden>
-  <form class="card rform" id="reportForm" novalidate>
+  <form class="card rform" id="reportForm" novalidate autocomplete="off">
     <div class="seg" role="tablist">
       <button type="button" data-kind="daily">每日回報</button>
       <button type="button" data-kind="class">大堂課回報</button>
@@ -741,10 +741,6 @@ async function load() {
 }
 
 /* ---------- 每日回報頁（寫進設定試算表「回報」分頁） ---------- */
-const store = {
-  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
-};
 const NEW_NAME = "__new__";
 const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
 const wkOf = d => "日一二三四五六"[fromKey(d).getDay()];
@@ -755,7 +751,9 @@ const reportName = () => $("reportName").value === NEW_NAME ? $("reportNew").val
 
 function showReport() {
   const names = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
-  const sel = $("reportName"), keep = sel.value || store.get("reportName");
+  // 不記住上一次的名字（大家可能共用同一支手機）；新成員送出後名單會出現他，直接選好
+  const sel = $("reportName"), typed = $("reportNew").value.trim();
+  const keep = sel.value === NEW_NAME && names.includes(typed) ? typed : sel.value;
   sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("") +
     `<option value="${NEW_NAME}">我是新成員（自己輸入名字）</option>`;
   if (names.includes(keep) || keep === NEW_NAME) sel.value = keep;
@@ -820,7 +818,7 @@ function showMine(n) {
     days.map(d => { const st = MODEL.status(m, d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
 }
 
-$("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReport(); };
+$("reportName").onchange = updateReport;
 $("reportNew").oninput = updateReport;
 $("reportDate").onchange = () => { reportDateTouched = true; updateReport(); };
 
@@ -874,7 +872,6 @@ $("reportForm").onsubmit = async e => {
     done = `${md(date)}（${wkOf(date)}）已完成`;
   }
   if (!CONFIG.reportApi) return reportMsg("回報功能還沒設定好，請通知管理員", "err");
-  store.set("reportName", $("reportName").value);
   $("reportBtn").disabled = true;
   reportMsg("送出中…");
   try {
@@ -882,7 +879,6 @@ $("reportForm").onsubmit = async e => {
     const r = await res.json();
     if (!r.ok) throw new Error(r.error || "送出失敗");
     reportMsg(`✅ 收到了！${esc(name)} ${done}`, "ok");
-    if ($("reportName").value === NEW_NAME) store.set("reportName", name);
     load();
   } catch (err) {
     reportMsg(`送出失敗：${esc(err.message)}，請再試一次`, "err");
