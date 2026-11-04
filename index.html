@@ -886,14 +886,16 @@ function showSettings() {
     groups.get(k).push(esc(n));
   }
   const ex = [...groups].sort().map(([k, ns]) => `${k}：${ns.join("、")}`);
+  // 已經退出的人不列在成員裡（只列在「退出／休息」）
+  const active = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current));
   $("settingsView").innerHTML = [
     ["開始計算日", normDate(SETTINGS.startDate) || "—"],
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
-    ["退出／休息", MODEL.pauses.length ? MODEL.pauses.map(p => `${esc(p.name)}：${p.from.slice(5).replace("-", "/")} 起不計算${p.back ? `，${p.back.slice(5).replace("-", "/")} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}`).join("<br>") : "無"],
-    ["成員", `${MODEL.members.length} 人<br>
-      <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
+    ["成員", `${active.length} 人<br>
+      <span class="hint">${active.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
         ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
+    ["退出／休息", MODEL.pauses.length ? MODEL.pauses.map(p => `${esc(p.name)}：${p.from.slice(5).replace("-", "/")} 起不計算${p.back ? `，${p.back.slice(5).replace("-", "/")} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}`).join("<br>") : "無"],
     [`${+ym.slice(5)} 月大堂課免死`, ex.length ? ex.join("<br>") : "無"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
