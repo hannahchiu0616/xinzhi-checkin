@@ -212,9 +212,16 @@ Mina
 欣潔
 婕綵
 承霖
+韋甄,2026-08-01,2026-08-31
 韋甄,2026-09-20
 姿妤`,
   exemptions: `
+美琪,2026-08-01,2026-08-04
+育凱,2026-08-01,2026-08-04
+勇達,2026-08-01,2026-08-04
+千千,2026-08-01,2026-08-04
+承霖,2026-08-11,2026-08-14
+韋甄,2026-08-02,2026-08-30
 宇熙,2026-10-22,2026-10-25
 家瑋,2026-10-22,2026-10-25
 美琪,2026-10-22,2026-10-25
@@ -230,7 +237,7 @@ Mina,2026-10-27,2026-10-30
 /* ===================================================================== */
 
 const $ = id => document.getElementById(id);
-const GRACE_MS = 60 * 1000;
+const GRACE_MS = 2 * 60 * 1000;   // 12:02 以前沒標「遲交」的都算準時（跟手算一致）
 const pad = n => String(n).padStart(2, "0");
 const key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -311,15 +318,15 @@ function readSettingsTab(rows) {
   const h = rows[0].map(x => x.trim());
   const col = re => h.findIndex(x => re.test(x));
   const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
-  const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天|結束日/);
-  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iPaid = col(/已收款/), iFreeFrom = col(/免死從/);
+  const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天/);
+  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iEnd = col(/結束日期/), iPaid = col(/已收款/), iFreeFrom = col(/免死從/);
   if ([iStart, iFree, iFine, iName, iMember, iPaid].every(i => i < 0)) return null;
   const s = {}, first = rows[1] || [];
   if (iPaid >= 0 && first[iPaid]) s.paidThrough = first[iPaid];
   if (iFreeFrom >= 0 && first[iFreeFrom]) s.freeFrom = first[iFreeFrom];
   if (iMember >= 0)
     s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
-      .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : ""].join(",")).join("\n");
+      .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : "", iEnd >= 0 ? r[iEnd] : ""].join(",")).join("\n");
   if (iStart >= 0 && first[iStart]) s.startDate = first[iStart];
   if (iFree >= 0 && first[iFree] !== "" && first[iFree] != null) s.freePerMonth = first[iFree];
   if (iFine >= 0 && first[iFine]) s.fine = first[iFine];
@@ -399,14 +406,21 @@ function build({ recs, headerMembers }, s) {
     if (!prev || (prev === "late" && !r.late)) p.days[r.day] = r.late ? "late" : "ok";
   }
 
-  let members = parseLines(s.members).map(([n, j]) => ({ name: n, join: normDate(j) }));
-  if (!members.length) members = headerMembers.map(n => ({ name: n, join: "" }));
-  if (!members.length) members = Object.keys(byName).map(n => ({ name: n, join: "" }));
+  // 成員可以寫好幾行：名字,加入日期,結束日期 → 每行是一段計算期間（中間停的日子不計算）
+  const byMember = new Map();
+  let lines = parseLines(s.members);
+  if (!lines.length) lines = (headerMembers.length ? headerMembers : Object.keys(byName)).map(n => [n]);
+  for (const [n, j, e] of lines) {
+    if (!byMember.has(n)) byMember.set(n, { name: n, periods: [] });
+    byMember.get(n).periods.push({ from: normDate(j), to: normDate(e) });
+  }
+  const members = [...byMember.values()];
   // 沒填加入日期的人，從第一次回報那天開始算
-  for (const m of members) if (!m.join && byName[m.name]) m.join = byName[m.name].first;
+  for (const m of members) for (const p of m.periods) if (!p.from && byName[m.name]) p.from = byName[m.name].first;
   // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
-  const never = members.filter(m => !m.join && !byName[m.name]).map(m => m.name);
-  for (const m of members) if (never.includes(m.name)) m.join = "9999-12-31";
+  const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
+  for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
+  for (const m of members) m.join = m.periods.map(p => p.from).sort()[0] || "";
 
   // 某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」不算缺交
   const perDay = {};
@@ -421,7 +435,7 @@ function build({ recs, headerMembers }, s) {
 
   function status(m, day) {
     if (day > current || day < firstDay) return "na";
-    if (m.join && day < m.join) return "na";
+    if (!m.periods.some(p => (!p.from || day >= p.from) && (!p.to || day <= p.to))) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
@@ -591,7 +605,8 @@ function showSettings() {
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
     ["已收款至", paidMonth() ? paidMonth().replace("-", " 年 ") + " 月" : "—"],
     ["成員", `${MODEL.members.length} 人<br>
-      <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.join ? `（${m.join.slice(5).replace("-", "/")} 加入）` : "")).join("、")}</span>`],
+      <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
+        ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
     ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
