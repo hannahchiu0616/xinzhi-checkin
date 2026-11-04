@@ -167,7 +167,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <h2>編輯者：怎麼修改</h2>
     <ol class="rules">
       <li><b>加人</b>：在「網站設定」的「成員」欄往下加一列名字，「加入日期」填他開始要寫的那天（加入前的日子不會罰）。名字要和他填表單的名字一模一樣。</li>
-      <li><b>新人</b>：不用手動加。只要他用固定名字填表單兩天以上，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
+      <li><b>新人</b>：不用手動加。只要他填了表單，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
       <li><b>有人退出</b>：在成員那一列填「結束日期」，之後就不再計算（直接刪掉的話，網站會因為表單有他的名字又自動加回來）。</li>
       <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
       <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就不再算進未繳累計。</li>
@@ -445,11 +445,10 @@ function build({ recs, headerMembers }, s) {
   // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
   const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
   for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
-  // 表單出現新名字、而且有兩天以上的回報 → 自動加成成員，從第一次回報那天開始算
-  // （只出現一天的多半是打錯字，不自動加）
+  // 表單出現新名字 → 自動加成成員，從第一次回報那天開始算
   const listed = new Set(members.map(m => m.name));
   for (const n of Object.keys(byName)) {
-    if (listed.has(n) || Object.keys(byName[n].days).length < 2) continue;
+    if (listed.has(n)) continue;
     members.push({ name: n, periods: [{ from: byName[n].first, to: "" }], auto: true });
   }
   for (const m of members) m.join = m.periods.map(p => p.from).sort()[0] || "";
