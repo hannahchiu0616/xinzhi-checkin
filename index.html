@@ -128,6 +128,14 @@ button.sm{padding:4px 9px;font-size:.85rem}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:4px 16px}
 .form-grid input,.form-grid textarea{width:100%}
 .form-grid .wide{grid-column:1/-1}
+/* 基本設定：分區塊、一排最多兩欄、說明放在輸入框下面 */
+.set-group{border-top:1px solid var(--line);padding-top:16px;margin-top:18px}
+.set-group h3{font-size:1rem;margin:0 0 12px;color:var(--accent)}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px 28px;max-width:760px}
+.set-field label{display:block;font-weight:600;margin-bottom:6px}
+.set-field input{width:100%;min-height:42px}
+.set-field .hint{margin-top:5px;font-size:.8rem}
+.set-group textarea{width:100%;max-width:760px;line-height:1.7}
 .glist{display:grid;gap:10px}
 .gitem{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg)}
 .gitem b{font-size:1.05rem}
@@ -772,21 +780,39 @@ async function saving(fn, okText) {
 }
 
 function secSettings() {
-  const s = DATA.settings || {};
-  const F = [
-    ["名稱", "網站名稱", "text"], ["副標題", "副標題", "text"],
-    ["任務名稱", "每天要做的事（例如：觀心書）", "text"], ["罰款名稱", "罰款叫什麼（例如：功德金）", "text"],
-    ["開始計算日", "開始計算日", "date"], ["每次罰款", "每次缺交罰多少元", "number"],
-    ["每月免死次數", "每人每月免死次數（0＝沒有）", "number"], ["免死從", "免死次數從哪個月開始（空白＝一開始就有）", "month"],
-    ["切換時間", "每天的切換時間（例如中午 12:00）", "time"], ["免除名稱", "免除的名稱（例如：大堂課；空白＝不用這個功能）", "text"],
-    ["免除提前天數", "免除從第一天的前幾天開始", "number"],
-    ["保留月數", "資料保留幾個月（含這個月；空白＝全部保留，超過的回報會自動刪除）", "number"],
+  const s = DATA.settings || {}, ex = SETTINGS.exName || "免除";
+  // [項目, 標題, 輸入類型, 小字說明]
+  const GROUPS = [
+    ["網站", [
+      ["名稱", "網站名稱", "text", ""],
+      ["副標題", "副標題", "text", "顯示在網站名稱下面"],
+      ["任務名稱", "每天要做的事", "text", "例如：觀心書"],
+      ["罰款名稱", "罰款叫什麼", "text", "例如：功德金"],
+    ]],
+    ["計算規則", [
+      ["開始計算日", "開始計算日", "date", "這天以前只顯示回報，不計罰款"],
+      ["切換時間", "每天的切換時間", "time", "例如中午 12:00：中午前回報算前一天"],
+      ["每次罰款", "每次缺交罰多少元", "number", ""],
+      ["每月免死次數", "每人每月免死次數", "number", "0＝沒有免死"],
+      ["免死從", "免死次數從哪個月開始", "month", "空白＝一開始就有"],
+    ]],
+    [ex, [
+      ["免除名稱", "名稱", "text", "例如：大堂課；空白＝不用這個功能"],
+      ["免除提前天數", "提前幾天開始免", "number", "例如 1＝上課前一天也免"],
+    ]],
+    ["資料保留", [
+      ["保留月數", "保留幾個月", "number", "含這個月；空白＝全部保留，超過的回報會自動刪除"],
+    ]],
   ];
   const val = (k, t) => t === "date" ? normDate(s[k]) : t === "month" ? normMonth(s[k]) : (s[k] || "");
-  $("adminSec").innerHTML = `<h2>基本設定</h2><div class="form-grid">` +
-    F.map(([k, l, t]) => `<div class="field"><label>${l}</label><input data-k="${k}" type="${t}" value="${esc(val(k, t))}"></div>`).join("") +
-    `<div class="field wide"><label>規則說明（一行一條，會顯示在「回報紀錄」上面）</label><textarea data-k="規則說明">${esc(s["規則說明"] || "")}</textarea></div></div>
-    <div class="edit-actions"><button type="button" id="saveSettings">儲存</button></div><p class="hint msg" id="secMsg"></p>`;
+  $("adminSec").innerHTML = `<h2>基本設定</h2>
+    <div class="edit-actions" style="margin:0 0 6px"><button type="button" id="saveSettings">儲存</button></div>
+    <p class="hint msg" id="secMsg" style="margin:0 0 6px"></p>` +
+    GROUPS.map(([g, F]) => `<div class="set-group"><h3>${esc(g)}</h3><div class="set-grid">` +
+      F.map(([k, l, t, h]) => `<div class="set-field"><label>${l}</label><input data-k="${k}" type="${t}" value="${esc(val(k, t))}">${h ? `<p class="hint">${h}</p>` : ""}</div>`).join("") +
+      `</div></div>`).join("") +
+    `<div class="set-group"><h3>規則說明</h3><p class="hint" style="margin:0 0 6px">一行一條，會顯示在「回報紀錄」上面</p>
+      <textarea data-k="規則說明" rows="6">${esc(s["規則說明"] || "")}</textarea></div>`;
   $("saveSettings").onclick = () => {
     const settings = {};
     $("adminSec").querySelectorAll("[data-k]").forEach(el => { settings[el.dataset.k] = el.value.trim(); });
