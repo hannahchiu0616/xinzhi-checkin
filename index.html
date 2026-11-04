@@ -84,6 +84,17 @@ a{color:var(--accent)}
 .report-btn:disabled{opacity:.6;filter:none}
 .rform{max-width:520px;margin:0 auto}
 .rform select,.rform input[type=date],.rform input:not([type]){width:100%;font-size:1rem;box-sizing:border-box}
+.rform + .rform{margin-top:16px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--none-bg);border-radius:10px;padding:4px}
+.seg button{background:transparent;color:var(--muted);border:0;border-radius:8px;padding:9px 4px;font-weight:600}
+.seg button[aria-selected="true"]{background:var(--card, #fff);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice label{display:flex;align-items:center;gap:8px;font-weight:600;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;margin:0}
+.choice label:has(input:checked){border-color:var(--accent)}
+.rlist{margin:0;padding:0;list-style:none}
+.rlist li{padding:8px 0;border-top:1px solid var(--line)}
+.rlist li:first-child{border-top:0}
+.rlist b{display:block}
 .rform #reportNew{margin-top:8px}
 .rform .report-btn{width:100%;margin-top:14px;font-size:1.05rem;padding:12px}
 .mine{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
@@ -141,21 +152,50 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </section>
 
   <section class="panel" data-panel="report" hidden>
-  <form class="card rform" id="reportForm">
-    <h2>寫完觀心書了嗎？</h2>
-    <div class="field">
-      <label for="reportName">名字</label>
-      <select id="reportName" required><option value="">選擇名字</option></select>
-      <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
+  <form class="card rform" id="reportForm" novalidate>
+    <div class="seg" role="tablist">
+      <button type="button" data-kind="daily">每日回報</button>
+      <button type="button" data-kind="class">大堂課回報</button>
+      <button type="button" data-kind="pause">退出／休息</button>
     </div>
     <div class="field">
-      <label for="reportDate">日期（哪一天的觀心書）</label><input type="date" id="reportDate" required>
+      <label for="reportName">名字</label>
+      <select id="reportName"><option value="">選擇名字</option></select>
+      <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
+    </div>
+    <div data-kind-panel="daily">
+      <div class="field">
+        <label for="reportDate">日期（哪一天的觀心書）</label><input type="date" id="reportDate">
+      </div>
+    </div>
+    <div data-kind-panel="class" hidden>
+      <div class="field row2">
+        <div><label for="classFrom">大堂課第一天</label><input type="date" id="classFrom"></div>
+        <div><label for="classTo">大堂課最後一天</label><input type="date" id="classTo"></div>
+      </div>
+    </div>
+    <div data-kind-panel="pause" hidden>
+      <div class="field">
+        <label>類型</label>
+        <div class="choice">
+          <label><input type="radio" name="pauseKind" value="休息" checked> 短暫休息</label>
+          <label><input type="radio" name="pauseKind" value="退出"> 退出</label>
+        </div>
+      </div>
+      <div class="field row2">
+        <div><label for="pauseFrom">從哪天開始不計算</label><input type="date" id="pauseFrom"></div>
+        <div id="pauseBackWrap"><label for="pauseBack">回歸日期（不確定可以空白）</label><input type="date" id="pauseBack"></div>
+      </div>
+      <div class="field">
+        <label for="pauseWhy">原因</label><input id="pauseWhy" maxlength="50" placeholder="例如：出國、身體不適">
+      </div>
     </div>
     <p class="hint" id="reportHint"></p>
     <button type="submit" class="report-btn" id="reportBtn">已完成 ✅ 送出回報</button>
     <p class="hint report-msg" id="reportMsg"></p>
     <div id="reportMine"></div>
   </form>
+  <div class="card rform" id="reportList" hidden></div>
   <p class="hint" style="text-align:center"><a href="#daily">查看大家的回報狀況 →</a></p>
   </section>
 
@@ -210,8 +250,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <h2>編輯者：怎麼修改</h2>
     <ol class="rules">
       <li><b>新人</b>：不用手動加。新人在回報頁選「我是新成員」輸入名字，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
-      <li><b>退出／休息</b>：在「成員」分頁加一列：名字、不計算開始日、回歸日期、原因。沒寫回歸日期＝一直不計算。名字要和回報用的一模一樣。</li>
-      <li><b>大堂課免死</b>：在「大堂課免死」分頁加一列：名字、大堂課第一天、最後一天。全部人都去就寫「全部」。</li>
+      <li><b>退出／休息</b>：本人在「回報專區 → 退出／休息」填就好，會自動寫進「成員」分頁。要修改或刪除就直接改那個分頁（名字、不計算開始日、回歸日期、原因），沒寫回歸日期＝一直不計算。</li>
+      <li><b>大堂課免死</b>：本人在「回報專區 → 大堂課回報」填上課日期，會自動寫進「大堂課免死」分頁。要修改或刪除就直接改那個分頁；全部人都去就寫「全部」。</li>
       <li><b>罰款、每月免死次數</b>：在「規則」分頁改第 2 列。</li>
     </ol>
   </div>
@@ -721,10 +761,41 @@ function showReport() {
   updateReport();
 }
 
+// 回報專區：每日回報／大堂課回報／退出休息
+let reportKind = "daily";
+const KIND_BTN = { daily: "已完成 ✅ 送出回報", class: "送出大堂課回報", pause: "送出" };
+function setKind(k) {
+  reportKind = k;
+  document.querySelectorAll("[data-kind]").forEach(b => b.setAttribute("aria-selected", b.dataset.kind === k));
+  document.querySelectorAll("[data-kind-panel]").forEach(p => p.hidden = p.dataset.kindPanel !== k);
+  $("reportBtn").textContent = KIND_BTN[k];
+  reportMsg("");
+  updateReport();
+}
+document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => setKind(b.dataset.kind));
+const pauseKind = () => document.querySelector("[name=pauseKind]:checked").value;
+document.querySelectorAll("[name=pauseKind]").forEach(r => r.onchange = updateReport);
+["classFrom", "classTo", "pauseFrom", "pauseBack"].forEach(id => $(id).onchange = updateReport);
+
 function updateReport() {
   $("reportNew").hidden = $("reportName").value !== NEW_NAME;
   $("reportDate").max = nowDay();
-  const d = $("reportDate").value, n = reportName();
+  const n = reportName();
+  if (reportKind !== "daily") {
+    $("reportMine").innerHTML = "";
+    $("pauseBackWrap").hidden = pauseKind() === "退出";
+    const a = $("classFrom").value, b = $("classTo").value;
+    if (a && (!b || b < a)) $("classTo").value = a;
+    $("classTo").min = a;
+    $("reportHint").textContent = reportKind === "class"
+      ? (a ? `上課前一天 ${md(addDays(a, -1))} 到最後一天 ${md($("classTo").value)} 都不用寫觀心書` : "填上課第一天和最後一天，前一天也會自動免")
+      : pauseKind() === "退出" ? "退出後就不再計算，下個月名字會從表格拿掉"
+      : "休息期間不計算；回歸日期那天開始恢復計算，沒填就一直不計算";
+    showReportList();
+    return;
+  }
+  $("reportList").hidden = true;
+  const d = $("reportDate").value;
   let hint = "";
   if (d) {
     const deadline = fromKey(addDays(d, 1)); deadline.setHours(12, 0, 59);
@@ -751,20 +822,64 @@ $("reportName").onchange = () => { store.set("reportName", $("reportName").value
 $("reportNew").oninput = updateReport;
 $("reportDate").onchange = () => { reportDateTouched = true; updateReport(); };
 
+// 大堂課：這個月的所有紀錄；退出／休息：目前還在不計算的人
+function showReportList() {
+  const today = nowDay(), ym = today.slice(0, 7), days = monthDays(ym), list = [];
+  let title;
+  if (reportKind === "class") {
+    title = `${+ym.slice(5)} 月大堂課紀錄`;
+    const groups = new Map();
+    for (const [n, a, b] of parseLines(SETTINGS.exemptions)) {
+      const st = normDate(a), en = normDate(b) || st;
+      if (!st || en < days[0] || addDays(st, -1) > days[days.length - 1]) continue;
+      const k = `${st}|${en}`;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(esc(n));
+    }
+    for (const [k, ns] of [...groups].sort()) {
+      const [st, en] = k.split("|");
+      list.push(`<b>${md(st)}～${md(en)} 上課</b><span class="hint">觀心書 ${md(addDays(st, -1))}～${md(en)} 免：</span>${ns.join("、")}`);
+    }
+  } else {
+    title = "目前退出／休息";
+    for (const p of (MODEL?.pauses || []).filter(p => !p.back || p.back > today).sort((a, b) => a.from < b.from ? -1 : 1))
+      list.push(`<b>${esc(p.name)}</b><span class="hint">${md(p.from)} 起不計算${p.back ? `，${md(p.back)} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}</span>`);
+  }
+  $("reportList").hidden = false;
+  $("reportList").innerHTML = `<h2>${title}</h2>` + (list.length ? `<ul class="rlist">${list.map(x => `<li>${x}</li>`).join("")}</ul>` : `<p class="hint">目前沒有</p>`);
+}
+
 $("reportForm").onsubmit = async e => {
   e.preventDefault();
   const name = reportName(), date = $("reportDate").value;
   if (!name) return reportMsg("請選擇或輸入名字", "err");
-  if (!date || date > nowDay()) return reportMsg("請確認日期", "err");
+  let body, done;
+  if (reportKind === "class") {
+    const from = $("classFrom").value, to = $("classTo").value || from;
+    if (!from || to < from) return reportMsg("請填大堂課第一天和最後一天", "err");
+    body = { type: "class", name, from, to };
+    done = `${md(from)}～${md(to)} 大堂課已登記，${md(addDays(from, -1))}～${md(to)} 免寫觀心書`;
+  } else if (reportKind === "pause") {
+    const kind = pauseKind(), from = $("pauseFrom").value, back = kind === "退出" ? "" : $("pauseBack").value;
+    if (!from) return reportMsg("請填從哪天開始不計算", "err");
+    if (back && back <= from) return reportMsg("回歸日期要在開始日之後", "err");
+    if (kind === "退出" && !confirm(`確定 ${name} 從 ${md(from)} 起退出嗎？`)) return;
+    body = { type: "pause", name, kind, from, back, why: $("pauseWhy").value };
+    done = `${kind === "退出" ? "退出" : "休息"}已登記，${md(from)} 起不計算${back ? `，${md(back)} 回歸` : ""}`;
+  } else {
+    if (!date || date > nowDay()) return reportMsg("請確認日期", "err");
+    body = { name, date };
+    done = `${md(date)}（${wkOf(date)}）已完成`;
+  }
   if (!CONFIG.reportApi) return reportMsg("回報功能還沒設定好，請通知管理員", "err");
   store.set("reportName", $("reportName").value);
   $("reportBtn").disabled = true;
   reportMsg("送出中…");
   try {
-    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify({ name, date }) });
+    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify(body) });
     const r = await res.json();
     if (!r.ok) throw new Error(r.error || "送出失敗");
-    reportMsg(`✅ 收到了！${esc(name)} ${md(date)}（${wkOf(date)}）已完成`, "ok");
+    reportMsg(`✅ 收到了！${esc(name)} ${done}`, "ok");
     if ($("reportName").value === NEW_NAME) store.set("reportName", name);
     load();
   } catch (err) {
@@ -815,6 +930,7 @@ $("settingsLink").href = CONFIG.settingsSheetUrl;
 // 預設日期：中午 12 點前是前一天，12 點後是當天；網頁一直開著的話，回到網頁時自動更新（自己改過日期就不動）
 let reportDateTouched = false;
 $("reportDate").value = nowDay();
+setKind("daily");
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || reportDateTouched || $("reportDate").value === nowDay()) return;
   $("reportDate").value = nowDay();
