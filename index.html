@@ -82,9 +82,17 @@ a{color:var(--accent)}
 .report-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
 .report-btn:hover{filter:brightness(1.1)}
 .report-btn:disabled{opacity:.6;filter:none}
-.report-row{display:flex;gap:8px;flex-wrap:wrap}
-.report-row select{min-width:120px;font-size:1rem}
-.report-msg{flex-basis:100%;margin:0}
+.rform{max-width:520px;margin:0 auto}
+.rform select,.rform input[type=date],.rform input:not([type]){width:100%;font-size:1rem;box-sizing:border-box}
+.rform #reportNew{margin-top:8px}
+.rform .report-btn{width:100%;margin-top:14px;font-size:1.05rem;padding:12px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice label{display:flex;align-items:center;gap:8px;font-weight:600;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;margin:0}
+.choice label:has(input:checked){border-color:var(--accent);background:var(--free-bg)}
+.mine{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.mine span{text-align:center;font-size:.75rem;color:var(--muted)}
+.report-msg{margin:10px 0 0}
+body.report-only .toolbar,body.report-only .tabs{display:none}
 .report-msg.ok{color:var(--ok);font-weight:600}
 .report-msg.err{color:var(--bad);font-weight:600}
 .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 4px}
@@ -134,25 +142,47 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </div>
   </section>
 
-  <section class="panel" data-panel="daily">
-  <form class="card report" id="reportForm">
-    <span><b>寫完觀心書了嗎？</b><br><span class="hint" id="reportHint">隔天中午 12:00 前回報</span></span>
-    <span class="report-row">
+  <section class="panel" data-panel="report" hidden>
+  <form class="card rform" id="reportForm">
+    <h2>每日回報</h2>
+    <div class="field">
+      <label for="reportName">名字</label>
       <select id="reportName" required><option value="">選擇名字</option></select>
-      <button type="submit" class="report-btn" id="reportBtn">我已完成 ✅ 送出回報</button>
-    </span>
-    <span class="hint report-msg" id="reportMsg">也可以用 <a href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">Google 表單</a> 回報</span>
+      <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
+    </div>
+    <div class="field">
+      <label>回報內容</label>
+      <div class="choice">
+        <label><input type="radio" name="reportStatus" value="已完成" checked> 已完成觀心書 ✅</label>
+        <label><input type="radio" name="reportStatus" value="大堂課pass"> 大堂課 pass 🎫</label>
+      </div>
+    </div>
+    <div class="field row2">
+      <div><label for="reportDate" id="reportDateLabel">日期</label><input type="date" id="reportDate" required></div>
+      <div id="reportToWrap" hidden><label for="reportTo">到（最後一天）</label><input type="date" id="reportTo"></div>
+    </div>
+    <p class="hint" id="reportHint"></p>
+    <button type="submit" class="report-btn" id="reportBtn">送出回報</button>
+    <p class="hint report-msg" id="reportMsg"></p>
+    <div id="reportMine"></div>
   </form>
-  <iframe name="reportSink" id="reportSink" hidden></iframe>
+  <p class="hint" style="text-align:center"><a href="./">查看大家的回報狀況 →</a></p>
+  </section>
+
+  <section class="panel" data-panel="daily">
+  <a class="card report" href="report.html">
+    <span><b>寫完觀心書了嗎？</b><br><span class="hint">隔天中午 12:00 前回報</span></span>
+    <span class="report-btn">去回報 →</span>
+  </a>
 
   <div class="card">
     <h2>定課規則</h2>
     <ol class="rules">
         <li>每日寫觀心書，沒寫一篇罰 50 元功德金</li>
-        <li>計算時間為當日中午 12 點至隔日中午 12 點，以表單「時間戳記」判斷是哪一天的觀心書</li>
-        <li>隔天中午 12 點前 po 出並填表單回報；沒填表單視同沒寫</li>
+        <li>計算時間為當日中午 12 點至隔日中午 12 點，回報時選是哪一天的觀心書</li>
+        <li>隔天中午 12 點前 po 出並在網站回報；沒回報視同沒寫，超過時間回報算遲交</li>
         <li>每人每月有 4 次免死金牌，第 5 次缺交起才罰款；一個月收一次功德金</li>
-        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天）</li>    </ol>
+        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天），回報時選「大堂課 pass」</li>    </ol>
   </div>
 
   <div class="card">
@@ -210,6 +240,8 @@ const CONFIG = {
   settingsSheetUrl: "https://docs.google.com/spreadsheets/d/1EIGk9C9_UwtMlHjbn-pUjHjzK3SwNOu6RI76Hi1v3eQ/edit",        // 另外一份設定試算表（有填就從這裡讀設定）
   settingsTabs: ["規則", "成員", "大堂課免死", "手算調整"],
   archiveGids: [],             // 舊回覆分頁（不再使用）
+  reportTab: "回報",           // 網站回報寫在設定試算表的這個分頁
+  reportApi: "",               // Apps Script 網頁應用程式網址（apps-script.gs 部署後貼上）
   startDate: "2026-06-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
@@ -431,6 +463,7 @@ function toRecords(rows) {
   const tCol = Math.max(0, header.findIndex(h => /時間戳記|timestamp/i.test(h)));
   const nCol = header.findIndex((h, i) => i !== tCol && /^(姓名|名字|稱呼|名稱|name)$/i.test(h));
   const dCol = header.findIndex(h => /^(回報|觀心書|統計)?日期$/.test(h));
+  const sCol = header.findIndex(h => /^狀態$/.test(h));
   if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認選到的是表單回應分頁。");
   const headerMembers = header.map(h => (h.match(/^(.+?)\s*[（(]免死[)）]$/) || [])[1]).filter(Boolean);
 
@@ -451,7 +484,9 @@ function toRecords(rows) {
       const deadline = fromKey(addDays(day, 1)); deadline.setHours(12); deadline.setTime(deadline.getTime() + GRACE_MS);
       late = ts > deadline;
     }
-    recs.push({ name, day, late, ts: ts.getTime(), id: raw + "|" + ts.getTime() });
+    const pass = sCol >= 0 && /大堂課|pass/i.test(r[sCol] || "");
+    if (pass) late = false;
+    recs.push({ name, day, late, pass, dated: !!claimed, ts: ts.getTime(), id: raw + "|" + ts.getTime() + "|" + day });
   }
   return { recs, headerMembers };
 }
@@ -469,17 +504,19 @@ function build({ recs, headerMembers }, s) {
 
   // 同一人兩次送出相隔不到 1 小時 → 當成不小心送了兩次，第二次不算（避免跨過中午被算成隔天）
   const lastTs = {};
+  // （網站回報有自己選日期，不用這個判斷）
   recs = recs.slice().sort((a, b) => a.ts - b.ts).filter(r => {
-    const dup = lastTs[r.name] && r.ts - lastTs[r.name] < 3600e3;
+    const dup = !r.dated && lastTs[r.name] && r.ts - lastTs[r.name] < 3600e3;
     lastTs[r.name] = r.ts;
     return !dup;
   });
   const byName = {};
+  const rank = { ok: 3, pass: 2, late: 1 };
   for (const r of recs) {
     const p = byName[r.name] ||= { days: {}, first: r.day };
     if (r.day < p.first) p.first = r.day;
-    const prev = p.days[r.day];
-    if (!prev || (prev === "late" && !r.late)) p.days[r.day] = r.late ? "late" : "ok";
+    const v = r.pass ? "pass" : r.late ? "late" : "ok";
+    if (!p.days[r.day] || rank[v] > rank[p.days[r.day]]) p.days[r.day] = v;
   }
 
   // 成員可以寫好幾行：名字,加入日期,結束日期 → 每行是一段計算期間（中間停的日子不計算）
@@ -541,6 +578,7 @@ function build({ recs, headerMembers }, s) {
     if (pauses.some(p => p.name === m.name && day >= p.from && (!p.back || day < p.back))) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
+    if (got === "pass") return "free";
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
     if (day === current) return "now";
     if (noData(day)) return "nodata";
@@ -675,10 +713,11 @@ async function load() {
   const notes = [];
   try {
     const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
-    const [rows, setRows, formDb, ...archives] = await Promise.all([
-      loadRows(CONFIG.sheetUrl),
+    const [rows, setRows, formDb, webRows, ...archives] = await Promise.all([
+      loadRows(CONFIG.sheetUrl).catch(() => null),   // 舊的 Google 表單回覆（歷史資料）
       loadSettingsSource().catch(() => null),
       fetch("form-members.json?_=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
+      CONFIG.settingsSheetUrl ? loadSheet(CONFIG.settingsSheetUrl, CONFIG.reportTab).catch(() => null) : null,
       ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
     const fromSheet = setRows;
@@ -686,9 +725,13 @@ async function load() {
       ? "讀不到設定試算表（請確認共用設定是「知道連結的任何人」），目前使用網站內建的預設設定。"
       : `試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
     SETTINGS = { ...CONFIG, ...(fromSheet || {}), formDb };
-    if (rows.length < 2) throw new Error("試算表沒有資料。");
+    if ((!rows || rows.length < 2) && !(webRows && webRows.length > 1)) throw new Error("試算表沒有資料。");
     // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
-    const main = toRecords(rows), seen = new Set();
+    const main = rows && rows.length > 1 ? toRecords(rows) : { recs: [], headerMembers: [] }, seen = new Set();
+    // 網站回報（設定試算表「回報」分頁；分頁不存在時 Google 會回傳別的分頁，靠「狀態」欄判斷）
+    if (webRows && webRows.length > 1 && webRows[0].some(h => /^狀態$/.test(String(h).trim()))) {
+      try { main.recs.push(...toRecords(webRows).recs); } catch (e) {}
+    }
     for (const a of archives) if (a && a.length > 1) {
       try { main.recs.push(...toRecords(a).recs); } catch (e) {}
     }
@@ -717,77 +760,88 @@ async function load() {
   showReport();
 }
 
-/* ---------- 網站直接回報（背後送進同一份 Google 表單） ---------- */
-const FORM = {
-  action: "https://docs.google.com/forms/d/e/1FAIpQLSc0phHwYqcs0WPKklQhrpbEVePiLPX9lcODbEjhHI1a0TAIJw/formResponse",
-  name: "entry.500777910",
-  done: ["entry.514448211", "我已完成✅"],
-};
+/* ---------- 每日回報頁（寫進設定試算表「回報」分頁） ---------- */
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
 };
-let reportSentAt = 0;
+const NEW_NAME = "__new__";
+const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+const wkOf = d => "日一二三四五六"[fromKey(d).getDay()];
+const nowDay = () => key(new Date(Date.now() - 12 * 3600e3 - GRACE_MS));   // 現在回報算哪一天
 
 function reportMsg(text, cls) { const el = $("reportMsg"); el.className = "hint report-msg " + (cls || ""); el.innerHTML = text; }
+const reportName = () => $("reportName").value === NEW_NAME ? $("reportNew").value.trim() : $("reportName").value;
+const reportStatus = () => document.querySelector("[name=reportStatus]:checked").value;
 
 function showReport() {
-  // 名字選項跟 Google 表單一致（表單裡有的名字才送得進去）
-  const fm = SETTINGS.formDb && SETTINGS.formDb.members;
-  const names = fm ? Object.keys(fm).filter(n => { const ps = fm[n]; return !ps[ps.length - 1].to; })
-    : MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
+  const names = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
   const sel = $("reportName"), keep = sel.value || store.get("reportName");
-  sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("");
-  if (names.includes(keep)) sel.value = keep;
-  updateReportHint();
+  sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("") +
+    `<option value="${NEW_NAME}">我是新成員（自己輸入名字）</option>`;
+  if (names.includes(keep) || keep === NEW_NAME) sel.value = keep;
+  if (!$("reportDate").value) $("reportDate").value = nowDay();
+  updateReport();
 }
 
-function updateReportHint() {
-  const day = key(new Date(Date.now() - 12 * 3600e3 - GRACE_MS));
-  const wk = "日一二三四五六"[fromKey(day).getDay()];
-  const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
-  const n = $("reportName").value;
-  const done = n && MODEL && MODEL.byName[n]?.days[day] === "ok";
-  $("reportHint").textContent = done
-    ? `${n} 已經回報過 ${md(day)}（${wk}）的觀心書了 ✓`
-    : `現在回報算 ${md(day)}（${wk}）的觀心書，${md(addDays(day, 1))} 中午 12:00 截止`;
+function updateReport() {
+  const pass = reportStatus() === "大堂課pass";
+  $("reportNew").hidden = $("reportName").value !== NEW_NAME;
+  $("reportToWrap").hidden = !pass;
+  $("reportDateLabel").textContent = pass ? "大堂課 pass 第一天" : "日期（哪一天的觀心書）";
+  // 已完成：只能選今天以前；大堂課 pass 可以先填之後的日子
+  $("reportDate").max = pass ? "" : nowDay();
+  const d = $("reportDate").value, n = reportName();
+  let hint = "";
+  if (d && !pass) {
+    const deadline = fromKey(addDays(d, 1)); deadline.setHours(12, 0, 59);
+    hint = Date.now() > deadline
+      ? `⚠️ ${md(d)}（${wkOf(d)}）的回報已經超過 ${md(addDays(d, 1))} 中午 12:00，會算遲交`
+      : `${md(d)}（${wkOf(d)}）的觀心書，${md(addDays(d, 1))} 中午 12:00 前回報`;
+    if (n && MODEL?.byName[n]?.days[d] === "ok") hint = `${n} 已經回報過 ${md(d)}（${wkOf(d)}）了 ✓`;
+  } else if (pass) hint = "上課前一天到上課最後一天都可以 pass，一次填好整段日期就好";
+  $("reportHint").textContent = hint;
+  showMine(n);
 }
 
-$("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReportHint(); };
-$("reportForm").onsubmit = e => {
+// 自己最近 7 天的狀況
+function showMine(n) {
+  const m = MODEL && MODEL.members.find(x => x.name === n);
+  if (!m) { $("reportMine").innerHTML = ""; return; }
+  const sym = { ok: "✓", miss: "✗", late: "遲", free: "免", now: "…", na: "·", nodata: "?" };
+  const days = Array.from({ length: 7 }, (_, i) => addDays(MODEL.current, i - 6));
+  $("reportMine").innerHTML = `<p class="hint" style="margin-top:16px">${esc(n)} 最近 7 天</p><div class="mine">` +
+    days.map(d => { const st = MODEL.status(m, d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
+}
+
+$("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReport(); };
+$("reportNew").oninput = updateReport;
+$("reportDate").onchange = updateReport;
+document.querySelectorAll("[name=reportStatus]").forEach(r => r.onchange = updateReport);
+
+$("reportForm").onsubmit = async e => {
   e.preventDefault();
-  const name = $("reportName").value;
-  if (!name) return;
-  store.set("reportName", name);
-  // 用隱藏的 iframe 送出，畫面不會跳到 Google
-  const f = document.createElement("form");
-  f.method = "POST"; f.action = FORM.action; f.target = "reportSink"; f.hidden = true;
-  for (const [k, v] of [[FORM.name, name], FORM.done]) {
-    const i = document.createElement("input"); i.name = k; i.value = v; f.appendChild(i);
-  }
-  document.body.appendChild(f);
-  reportSentAt = Date.now();
+  const name = reportName(), status = reportStatus(), date = $("reportDate").value;
+  const to = status === "大堂課pass" && $("reportTo").value ? $("reportTo").value : date;
+  if (!name) return reportMsg("請選擇或輸入名字", "err");
+  if (!date || to < date) return reportMsg("請確認日期", "err");
+  if (!CONFIG.reportApi) return reportMsg("回報功能還沒設定好，請通知管理員", "err");
+  store.set("reportName", $("reportName").value);
   $("reportBtn").disabled = true;
   reportMsg("送出中…");
-  f.submit();
-  f.remove();
-};
-$("reportSink").onload = async () => {
-  if (!reportSentAt) return;
-  const name = $("reportName").value, sentAt = reportSentAt;
-  reportSentAt = 0;
-  reportMsg("已送出，確認中…");
-  // 重新讀試算表，確認真的有收到這筆
-  for (let i = 0; i < 4; i++) {
-    await new Promise(r => setTimeout(r, 2500));
-    await load();
-    if ((MODEL?.lastTs[name] || 0) >= sentAt - 120e3) {
-      $("reportBtn").disabled = false;
-      return reportMsg(`✅ 收到了！${esc(name)} ${new Date(MODEL.lastTs[name]).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" })} 回報成功`, "ok");
-    }
+  try {
+    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify({ name, status, date, to }) });
+    const r = await res.json();
+    if (!r.ok) throw new Error(r.error || "送出失敗");
+    const range = to !== date ? `${md(date)}～${md(to)}` : `${md(date)}（${wkOf(date)}）`;
+    reportMsg(`✅ 收到了！${esc(name)} ${range} ${status === "大堂課pass" ? "大堂課 pass" : "已完成"}`, "ok");
+    if ($("reportName").value === NEW_NAME) store.set("reportName", name);
+    load();
+  } catch (err) {
+    reportMsg(`送出失敗：${esc(err.message)}，請再試一次`, "err");
+  } finally {
+    $("reportBtn").disabled = false;
   }
-  $("reportBtn").disabled = false;
-  reportMsg(`還沒在試算表看到這筆回報，請等一下按「重新整理」確認，或改用 <a href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">Google 表單</a> 回報`, "err");
 };
 
 function showSettings() {
@@ -817,12 +871,20 @@ function showSettings() {
 }
 
 function showTab(name) {
-  if (!document.querySelector(`[data-panel="${name}"]`)) name = "daily";
+  if (!document.querySelector(`[data-panel="${name}"]`) || name === "report") name = "daily";
   document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== name);
   document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
 }
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
-showTab(location.hash.slice(1));
+// 回報頁（report.html 會轉到 ?p=report）：只顯示回報表單
+const REPORT_ONLY = new URLSearchParams(location.search).get("p") === "report";
+if (REPORT_ONLY) {
+  document.body.classList.add("report-only");
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== "report");
+  document.querySelector("h1").textContent = "心之使者每日回報";
+  document.querySelector(".sub").textContent = "寫完觀心書，隔天中午 12:00 前回報";
+  document.title = "心之使者每日回報";
+} else showTab(location.hash.slice(1));
 
 $("settingsLink").href = CONFIG.settingsSheetUrl || CONFIG.sheetUrl;
 $("responsesLink").href = CONFIG.sheetUrl;
