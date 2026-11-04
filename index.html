@@ -253,13 +253,9 @@ button.sm{padding:4px 9px;font-size:.85rem}
   <!-- 登入（管理頁和總管理共用） -->
   <div class="card rform" id="loginCard" hidden>
     <h2>管理登入</h2>
-    <p class="hint">只有管理員可以修改。輸入你的 Email，系統會寄 6 位數驗證碼到你的信箱。</p>
+    <p class="hint">只有管理員可以修改。輸入管理員名單上的 Email 就能登入。</p>
     <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" inputmode="email"></div>
-    <button type="button" class="report-btn" id="sendCode">寄驗證碼</button>
-    <div id="codeStep" hidden>
-      <div class="field"><label for="loginCode">驗證碼</label><input id="loginCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></div>
-      <button type="button" class="report-btn" id="verifyBtn">登入</button>
-    </div>
+    <button type="button" class="report-btn" id="loginBtn">登入</button>
     <p class="hint msg" id="loginMsg"></p>
   </div>
   <datalist id="memberNames"></datalist>
@@ -714,31 +710,22 @@ function showLoginState() {
   if (OWNER_MODE) $("ownerPanel").hidden = !inn; else $("adminPanel").hidden = !inn;
   if (inn) onLogin();
 }
-$("sendCode").onclick = async () => {
+// Email 在管理員名單上就直接登入
+$("loginBtn").onclick = async () => {
   const email = $("loginEmail").value.trim();
   if (!email) return setMsg("loginMsg", "請輸入 Email", "err");
-  $("sendCode").disabled = true;
-  setMsg("loginMsg", "寄送中…");
+  $("loginBtn").disabled = true;
+  setMsg("loginMsg", "登入中…");
   try {
-    await api({ action: "requestCode", email });
-    $("codeStep").hidden = false;
-    $("loginCode").focus();
-    setMsg("loginMsg", "已寄出驗證碼，請到信箱收信（10 分鐘內有效，也看一下垃圾郵件）", "ok");
-  } catch (e) { setMsg("loginMsg", esc(e.message), "err"); }
-  finally { $("sendCode").disabled = false; }
-};
-$("verifyBtn").onclick = async () => {
-  $("verifyBtn").disabled = true;
-  try {
-    const r = await api({ action: "verifyCode", email: $("loginEmail").value.trim(), code: $("loginCode").value.trim() });
+    const r = await api({ action: "login", email });
     TOKEN = r.token; ME = r.email;
     store.set(tokKey(), TOKEN); store.set(tokKey() + ":email", ME);
-    $("loginCode").value = ""; $("codeStep").hidden = true; setMsg("loginMsg", "");
+    setMsg("loginMsg", "");
     showLoginState();
   } catch (e) { setMsg("loginMsg", esc(e.message), "err"); }
-  finally { $("verifyBtn").disabled = false; }
+  finally { $("loginBtn").disabled = false; }
 };
-$("loginCode").onkeydown = e => { if (e.key === "Enter") $("verifyBtn").click(); };
+$("loginEmail").onkeydown = e => { if (e.key === "Enter") $("loginBtn").click(); };
 
 /* ---------- 管理頁 ---------- */
 let ADMIN = null, adminSec = "settings";

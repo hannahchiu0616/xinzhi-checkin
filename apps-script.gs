@@ -162,7 +162,19 @@ const ACTIONS = {
     return {};
   },
 
-  // 登入：寄驗證碼到管理員信箱
+  // 登入：Email 在管理員名單上就直接登入（不寄驗證碼）
+  login(p) {
+    const email = normEmail(p.email), g = p.admin ? "*" : p.g;
+    if (!/^[^@\s]+@[^@\s]+$/.test(email)) throw new Error("Email 格式不對");
+    if (!canAdmin(g, email)) throw new Error("這個 Email 沒有管理權限");
+    cleanTokens();
+    const token = Utilities.getUuid();
+    props().setProperty("t_" + token, JSON.stringify({ g, email, exp: Date.now() + 30 * 864e5 }));
+    if (g !== "*") log(book(g), email, "登入", "");
+    return { token, email };
+  },
+
+  // （備用）寄驗證碼登入：要用的話網站改呼叫 requestCode / verifyCode
   requestCode(p) {
     const email = normEmail(p.email), g = p.admin ? "*" : p.g;
     if (!/^[^@\s]+@[^@\s]+$/.test(email)) throw new Error("Email 格式不對");
