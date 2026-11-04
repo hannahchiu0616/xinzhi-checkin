@@ -802,10 +802,13 @@ function updateReport() {
 function showMine(n) {
   const m = MODEL && MODEL.members.find(x => x.name === n);
   if (!m) { $("reportMine").innerHTML = ""; return; }
-  const sym = { ok: "✓", miss: "✗", late: "遲", free: "免", now: "…", na: "·", nodata: "?" };
+  const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·", nodata: "?" };
   const days = Array.from({ length: 7 }, (_, i) => addDays(MODEL.current, i - 6));
+  // 跟「回報紀錄」一樣用整個月的計算結果（缺交被每月免死次數抵掉的顯示「抵」）
+  const byMonth = {};
+  const cell = d => (byMonth[d.slice(0, 7)] ||= monthDetail(m, d.slice(0, 7))).cells.find(c => c.d === d)?.st || "na";
   $("reportMine").innerHTML = `<p class="hint" style="margin-top:16px">${esc(n)} 最近 7 天</p><div class="mine">` +
-    days.map(d => { const st = MODEL.status(m, d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
+    days.map(d => { const st = cell(d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
 }
 
 $("reportName").onchange = updateReport;
