@@ -786,7 +786,7 @@ function secSettings() {
 }
 
 // 通用表格編輯：一列一筆，可以新增、刪除、排序，按儲存整份寫回去
-function editor({ title, hint, tab, cols, rows, newRow, reorder }) {
+function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave }) {
   const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
   $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
     <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>
@@ -810,16 +810,23 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder }) {
     else if (act === "up" && tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
     else if (act === "down" && tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
     else if (act === "save") {
-      const data = [...tb.rows].map(r => [...r.querySelectorAll("input")].map(i => i.value.trim())).filter(r => r[0]);
+      let data = [...tb.rows].map(r => [...r.querySelectorAll("input")].map(i => i.value.trim())).filter(r => r[0]);
+      if (beforeSave) data = beforeSave(data);
       saving(() => api({ action: "saveTab", tab, rows: data }));
     }
   };
 }
 const nameCol = { label: "名字", list: "memberNames" };
 function secMembers() {
-  editor({ title: "成員", tab: "成員", reorder: true, rows: DATA["成員"], newRow: () => ["", nowDay(), ""],
-    hint: "順序就是表格裡的順序。加入日期空白＝從第一次回報那天開始算。要退出或休息請用「退出／休息」。",
-    cols: [{ label: "名字" }, { label: "加入日期", type: "date" }, { label: "結束日期", type: "date" }] });
+  // 只顯示名字；原本的加入／結束日期存檔時照舊保留，新增的人從今天開始算
+  const old = DATA["成員"] || [], seen = new Set();
+  editor({ title: "成員", tab: "成員", rows: old.filter(r => !seen.has(r[0]) && seen.add(r[0])).map(r => [r[0]]), newRow: () => [""],
+    hint: "新增的人從今天開始算，排在最下面。要退出或休息請用「退出／休息」。",
+    cols: [{ label: "名字" }],
+    beforeSave: names => names.flatMap(([n]) => {
+      const keep = old.filter(r => r[0] === n);
+      return keep.length ? keep : [[n, nowDay(), ""]];
+    }) });
 }
 function secPauses() {
   editor({ title: "退出／休息", tab: "退出休息", rows: DATA["退出休息"], newRow: () => ["", nowDay(), "", ""],
