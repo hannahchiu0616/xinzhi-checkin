@@ -85,6 +85,12 @@ a{color:var(--accent)}
 .rform{max-width:520px;margin:0 auto}
 .rform select,.rform input[type=date],.rform input:not([type]){width:100%;font-size:1rem;box-sizing:border-box}
 .rform + .rform{margin-top:16px}
+/* iPhone 的日期框有自己的最小寬度，會超出畫面 */
+.rform input[type=date]{display:block;min-width:0;max-width:100%;min-height:42px}
+@supports (-webkit-touch-callout: none){.rform input[type=date]{-webkit-appearance:none;appearance:none;line-height:24px;text-align:left}}
+.rform input[type=date]::-webkit-date-and-time-value{text-align:left}
+.rform .row2{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.rform .row2 > div,.rform .field{min-width:0}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--none-bg);border-radius:10px;padding:4px}
 .seg button{background:transparent;color:var(--muted);border:0;border-radius:8px;padding:9px 4px;font-weight:600}
 .seg button[aria-selected="true"]{background:var(--card, #fff);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
