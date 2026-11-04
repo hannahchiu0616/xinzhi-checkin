@@ -76,6 +76,9 @@ a{color:var(--accent)}
 .tabs button{background:transparent;color:var(--muted);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 16px;font-weight:600;flex:1;max-width:160px}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .panel[hidden]{display:none}
+.report{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--ink);border-color:var(--accent)}
+.report-btn{background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
+.report:hover .report-btn{filter:brightness(1.1)}
 details summary{cursor:pointer;font-weight:600}
 .field{margin-top:14px}
 .field label{display:block;font-weight:600;margin-bottom:4px}
@@ -117,6 +120,11 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </section>
 
   <section class="panel" data-panel="daily">
+  <a class="card report" href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">
+    <span><b>寫完觀心書了嗎？</b><br><span class="hint">隔天中午 12:00 前填表單回報</span></span>
+    <span class="report-btn">填表單回報 →</span>
+  </a>
+
   <div class="card">
     <h2>定課規則</h2>
     <ol class="rules">
