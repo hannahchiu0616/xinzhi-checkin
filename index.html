@@ -424,7 +424,7 @@ function toRecords(rows) {
       const deadline = fromKey(addDays(day, 1)); deadline.setHours(12); deadline.setTime(deadline.getTime() + GRACE_MS);
       late = ts > deadline;
     }
-    recs.push({ name, day, late, id: raw + "|" + ts.getTime() });
+    recs.push({ name, day, late, ts: ts.getTime(), id: raw + "|" + ts.getTime() });
   }
   return { recs, headerMembers };
 }
@@ -440,6 +440,13 @@ function build({ recs, headerMembers }, s) {
   const current = key(shifted);            // 目前還在進行中的那一天
   const start = normDate(s.startDate);
 
+  // 同一人兩次送出相隔不到 1 小時 → 當成不小心送了兩次，第二次不算（避免跨過中午被算成隔天）
+  const lastTs = {};
+  recs = recs.slice().sort((a, b) => a.ts - b.ts).filter(r => {
+    const dup = lastTs[r.name] && r.ts - lastTs[r.name] < 3600e3;
+    lastTs[r.name] = r.ts;
+    return !dup;
+  });
   const byName = {};
   for (const r of recs) {
     const p = byName[r.name] ||= { days: {}, first: r.day };
