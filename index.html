@@ -560,12 +560,14 @@ function build({ recs, headerMembers }, s) {
     .filter(p => p.from);
 
   function status(m, day) {
-    if (day > current || day < firstDay) return "na";
+    if (day < firstDay) return "na";
     if (!m.periods.some(p => (!p.from || day >= p.from) && (!p.to || day <= p.to))) return "na";
     if (pauses.some(p => p.name === m.name && day >= p.from && (!p.back || day < p.back))) return "na";
+    // 大堂課期間一律算免（有沒有回報都一樣），還沒到的日子也先標出來
+    if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
+    if (day > current) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
-    if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
     if (day === current) return "now";
     if (noData(day)) return "nodata";
     return got === "late" ? "late" : "miss";
