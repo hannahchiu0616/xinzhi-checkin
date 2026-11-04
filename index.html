@@ -188,11 +188,6 @@ h2{font-size:1.1rem;margin:0 0 12px}
       <select id="reportName"><option value="">選擇名字</option></select>
       <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
     </div>
-    <div data-kind-panel="daily">
-      <div class="field">
-        <label for="reportDate">日期（哪一天的觀心書）</label><input type="date" id="reportDate">
-      </div>
-    </div>
     <div data-kind-panel="class" hidden>
       <div class="field row2">
         <div><label for="classFrom">大堂課第一天</label><input type="date" id="classFrom"></div>
@@ -747,7 +742,6 @@ function showReport() {
   sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("") +
     `<option value="${NEW_NAME}">我是新成員（自己輸入名字）</option>`;
   if (names.includes(keep) || keep === NEW_NAME) sel.value = keep;
-  if (!$("reportDate").value) $("reportDate").value = nowDay();
   updateReport();
 }
 
@@ -769,7 +763,6 @@ document.querySelectorAll("[name=pauseKind]").forEach(r => r.onchange = updateRe
 
 function updateReport() {
   $("reportNew").hidden = $("reportName").value !== NEW_NAME;
-  $("reportDate").max = nowDay();
   const n = reportName();
   if (reportKind !== "daily") {
     $("reportMine").innerHTML = "";
@@ -785,15 +778,9 @@ function updateReport() {
     return;
   }
   $("reportList").hidden = true;
-  const d = $("reportDate").value;
-  let hint = "";
-  if (d) {
-    const deadline = fromKey(addDays(d, 1)); deadline.setHours(12, 0, 59);
-    hint = Date.now() > deadline
-      ? `⚠️ ${md(d)}（${wkOf(d)}）的回報已經超過 ${md(addDays(d, 1))} 中午 12:00，會算遲交`
-      : `${md(d)}（${wkOf(d)}）的觀心書，${md(addDays(d, 1))} 中午 12:00 前回報`;
-    if (n && MODEL?.byName[n]?.days[d] === "ok") hint = `${n} 已經回報過 ${md(d)}（${wkOf(d)}）了 ✓`;
-  }
+  const d = nowDay();
+  let hint = `這次回報算 ${md(d)}（${wkOf(d)}）的觀心書，${md(addDays(d, 1))} 中午 12:00 前回報`;
+  if (n && MODEL?.byName[n]?.days[d] === "ok") hint = `${n} 已經回報過 ${md(d)}（${wkOf(d)}）了 ✓`;
   $("reportHint").textContent = hint;
   showMine(n);
 }
@@ -812,7 +799,6 @@ function showMine(n) {
 
 $("reportName").onchange = updateReport;
 $("reportNew").oninput = updateReport;
-$("reportDate").onchange = () => { reportDateTouched = true; updateReport(); };
 
 // 大堂課：這個月的所有紀錄；退出／休息：目前還在不計算的人
 function showReportList() {
@@ -843,7 +829,7 @@ function showReportList() {
 
 $("reportForm").onsubmit = async e => {
   e.preventDefault();
-  const name = reportName(), date = $("reportDate").value;
+  const name = reportName(), date = nowDay();
   if (!name) return reportMsg("請選擇或輸入名字", "err");
   let body, done;
   if (reportKind === "class") {
@@ -919,14 +905,9 @@ window.onhashchange = () => showTab(location.hash.slice(1));
 showTab(new URLSearchParams(location.search).get("p") || location.hash.slice(1));
 
 $("settingsLink").href = CONFIG.settingsSheetUrl;
-// 預設日期：中午 12 點前是前一天，12 點後是當天；網頁一直開著的話，回到網頁時自動更新（自己改過日期就不動）
-let reportDateTouched = false;
-$("reportDate").value = nowDay();
+// 每日回報不用選日期：中午 12 點前回報算前一天，12 點後算當天；網頁一直開著跨過中午，回到網頁時提示會更新
 setKind("daily");
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden || reportDateTouched || $("reportDate").value === nowDay()) return;
-  $("reportDate").value = nowDay();
-  if (MODEL) updateReport();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && MODEL) updateReport(); });
 });
 $("month").onchange = () => { render(); showSettings(); };
 
