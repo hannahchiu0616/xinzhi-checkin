@@ -166,9 +166,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>編輯者：怎麼修改</h2>
     <ol class="rules">
-      <li><b>加人</b>：在「網站設定」的「成員」欄往下加一列名字，「加入日期」填他開始要寫的那天（加入前的日子不會罰）。名字要和他填表單的名字一模一樣。</li>
       <li><b>新人</b>：不用手動加。只要他填了表單，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
-      <li><b>有人退出</b>：在成員那一列填「結束日期」，之後就不再計算（直接刪掉的話，網站會因為表單有他的名字又自動加回來）。</li>
+      <li><b>退出／休息</b>：在「成員」分頁加一列：名字、不計算開始日、回歸日期、原因。沒寫回歸日期＝一直不計算。名字要和填表單的一模一樣。</li>
       <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
       <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就會標成「已收」。</li>
       <li><b>手算調整</b>：網站算的和手算不一樣、要以手算為準時，在「手算名字／手算月份／手算金額」加一列，例如「士軒｜2026/8｜250」。</li>
@@ -351,7 +350,12 @@ function readSettingsTab(rows) {
     s.overrides = rows.slice(1).filter(r => (r[iOName] || "").trim() && r[iOMonth] && r[iOAmt] !== "")
       .map(r => [r[iOName].trim(), r[iOMonth], r[iOAmt]].join(",")).join("\n");
   if (iFreeFrom >= 0 && first[iFreeFrom]) s.freeFrom = first[iFreeFrom];
-  if (iMember >= 0)
+  // 新格式：成員｜不計算開始日｜回歸日期｜原因 → 只列退出／休息的人
+  const iPause = col(/不計算開始/), iBack = col(/回歸/), iWhy = col(/原因/);
+  if (iMember >= 0 && iPause >= 0)
+    s.pauses = rows.slice(1).filter(r => (r[iMember] || "").trim() && r[iPause])
+      .map(r => [r[iMember].trim(), r[iPause], iBack >= 0 ? r[iBack] || "" : "", iWhy >= 0 ? (r[iWhy] || "").replace(/,/g, "，") : ""].join(",")).join("\n");
+  else if (iMember >= 0)
     s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
       .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : "", iEnd >= 0 ? r[iEnd] : ""].join(",")).join("\n");
   if (iStart >= 0 && first[iStart]) s.startDate = first[iStart];
@@ -495,9 +499,14 @@ function build({ recs, headerMembers }, s) {
     return st ? { name: n, from: addDays(st, -1), to: en } : null;
   }).filter(Boolean);
 
+  // 退出／休息：不計算開始日起，到回歸日期前一天（沒寫回歸日期 → 一直不計算）
+  const pauses = parseLines(s.pauses).map(([name, a, b, why]) => ({ name, from: normDate(a), back: normDate(b), why: why || "" }))
+    .filter(p => p.from);
+
   function status(m, day) {
     if (day > current || day < firstDay) return "na";
     if (!m.periods.some(p => (!p.from || day >= p.from) && (!p.to || day <= p.to))) return "na";
+    if (pauses.some(p => p.name === m.name && day >= p.from && (!p.back || day < p.back))) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
@@ -514,7 +523,7 @@ function build({ recs, headerMembers }, s) {
 
   const known = new Set(members.map(m => m.name));
   const unknown = Object.keys(byName).filter(n => !known.has(n) && (!start || Object.keys(byName[n].days).some(d => d >= start)));
-  return { members, status, months, unknown, never };
+  return { members, status, months, unknown, never, pauses };
 }
 
 function monthDays(ym) {
@@ -684,6 +693,7 @@ function showSettings() {
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
     ["已收款至", paidMonth() ? paidMonth().replace("-", " 年 ") + " 月" : "—"],
+    ["退出／休息", MODEL.pauses.length ? MODEL.pauses.map(p => `${esc(p.name)}：${p.from.slice(5).replace("-", "/")} 起不計算${p.back ? `，${p.back.slice(5).replace("-", "/")} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}`).join("<br>") : "無"],
     ["成員", `${MODEL.members.length} 人<br>
       <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
         ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
