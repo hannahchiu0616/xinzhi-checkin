@@ -81,7 +81,12 @@ a{color:var(--accent)}
 .report{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--ink);border-color:var(--accent)}
 .report-btn{background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
 .report:hover .report-btn{filter:brightness(1.1)}
-a.report-btn{text-decoration:none;display:inline-block}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 4px}
+.link-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);background:var(--bg);transition:border-color .15s}
+.link-card:hover{border-color:var(--accent)}
+.link-card .hint{margin:0}
+.lc-title{font-weight:700}
+.lc-go{color:var(--accent);font-weight:600;font-size:.9rem;margin-top:4px}
 details summary{cursor:pointer;font-weight:600}
 .field{margin-top:14px}
 .field label{display:block;font-weight:600;margin-bottom:4px}
@@ -160,11 +165,18 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>目前設定</h2>
     <dl class="kv" id="settingsView"></dl>
-    <div class="toolbar" style="margin:4px 0 10px">
-      <a class="report-btn" id="settingsLink" target="_blank" rel="noopener">開啟設定試算表 →</a>
-      <a id="responsesLink" target="_blank" rel="noopener">開啟回報試算表</a>
+    <div class="links">
+      <a class="link-card" id="settingsLink" target="_blank" rel="noopener">
+        <span class="lc-title">設定試算表</span>
+        <span class="hint">退出／休息、大堂課免死、罰款規則。改完回網站按「重新整理」</span>
+        <span class="lc-go">開啟 →</span>
+      </a>
+      <a class="link-card" id="responsesLink" target="_blank" rel="noopener">
+        <span class="lc-title">回報試算表</span>
+        <span class="hint">大家填表單的原始資料，只能看</span>
+        <span class="lc-go">開啟 →</span>
+      </a>
     </div>
-    <p class="hint">設定試算表：退出／休息、大堂課免死、罰款規則都在這裡改，改完回網站按「重新整理」。<br>回報試算表：大家填表單的原始資料，只能看。</p>
   </div>
 
   <div class="card">
