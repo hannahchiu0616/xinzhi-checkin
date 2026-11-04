@@ -169,6 +169,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
       <li><b>加人</b>：在「網站設定」的「成員」欄往下加一列名字，「加入日期」填他開始要寫的那天（加入前的日子不會罰）。名字要和他填表單的名字一模一樣。</li>
       <li><b>有人退出</b>：把那一列刪掉。</li>
       <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
+      <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就不再算進未繳累計。</li>
       <li><b>罰款、每月免死次數、開始計算日</b>：改第 2 列的數字。</li>
     </ol>
   </div>
@@ -181,7 +182,8 @@ const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
   archiveGids: ["141416685"],   // 存放舊回覆的分頁（工作表1）
-  startDate: "2026-11-01",
+  startDate: "2026-06-01",
+  paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
   freePerMonth: 4,
   members: "",
@@ -271,9 +273,10 @@ function readSettingsTab(rows) {
   const col = re => h.findIndex(x => re.test(x));
   const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
   const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天|結束日/);
-  const iMember = col(/^成員$/), iJoin = col(/加入日期/);
-  if ([iStart, iFree, iFine, iName, iMember].every(i => i < 0)) return null;
+  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iPaid = col(/已收款/);
+  if ([iStart, iFree, iFine, iName, iMember, iPaid].every(i => i < 0)) return null;
   const s = {}, first = rows[1] || [];
+  if (iPaid >= 0 && first[iPaid]) s.paidThrough = first[iPaid];
   if (iMember >= 0)
     s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
       .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : ""].join(",")).join("\n");
@@ -419,12 +422,20 @@ function monthDetail(m, ym) {
 
 let MODEL = null, SETTINGS = { ...CONFIG }, ROWS = [];
 
+// "2026/10"、"2026-10"、"2026/10/1" → "2026-10"
+function paidMonth() {
+  const m = String(SETTINGS.paidThrough || "").match(/(\d{4})\D+(\d{1,2})/);
+  return m ? `${m[1]}-${pad(m[2])}` : "";
+}
+
 function render() {
   const ym = $("month").value || MODEL.months[MODEL.months.length - 1];
   const days = monthDays(ym);
+  const paid = paidMonth();
+  const isPaid = paid && ym <= paid;
   ROWS = MODEL.members.map(m => {
     const t = monthDetail(m, ym);
-    const total = MODEL.months.reduce((a, mm) => a + monthDetail(m, mm).owe, 0);
+    const total = MODEL.months.filter(mm => !paid || mm > paid).reduce((a, mm) => a + monthDetail(m, mm).owe, 0);
     return { m, t, total };
   }).sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
 
@@ -432,7 +443,8 @@ function render() {
   const hist = start && monthDays(ym).some(d => d < start);
   const gap = ROWS.some(r => r.t.nodata);
   const note = [
-    hist ? `這個月在開始計算日（${start.slice(5).replace("-", "/")}）之前的日子只顯示回報狀況，不計功德金；當時的功德金以手算結果為準。` : "",
+    isPaid ? "✅ 這個月的功德金已經收了，不算進未繳累計。" : "",
+    hist ? `這個月在開始計算日（${start.slice(5).replace("-", "/")}）之前的日子只顯示回報狀況，不計功德金。` : "",
     gap ? "灰色「?」的日子試算表裡沒有回報資料（可能被刪除），不算缺交。" : "",
   ].filter(Boolean).join("<br>");
   document.querySelectorAll(".month-note").forEach(el => { el.innerHTML = note; el.hidden = !note; });
@@ -442,21 +454,21 @@ function render() {
   const perfect = ROWS.filter(r => r.t.miss + r.t.late + r.t.cov === 0).length;
   const reports = ROWS.reduce((a, r) => a + r.t.ok, 0);
   $("stats").innerHTML = [
-    ["本月功德金合計", `$${sum.toLocaleString()}`, true],
+    [isPaid ? "本月功德金合計（已收）" : "本月功德金合計", `$${sum.toLocaleString()}`, !isPaid],
     ["本月全勤人數", `${perfect} / ${ROWS.length}`],
     ["本月回報篇數", reports],
-    ["開始計算至今累計", `$${sumAll.toLocaleString()}`, true],
+    ["未繳累計", `$${sumAll.toLocaleString()}`, true],
   ].map(([k, v, money]) => `<div class="stat"><div class="k">${k}</div><div class="v ${money ? "money" : ""}">${v}</div></div>`).join("");
 
   const free = parseInt(SETTINGS.freePerMonth, 10) || 0;
   $("legendCov").hidden = !free;
-  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金</th><th class="num">累計</th></tr>` +
+  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th><th class="num">未繳累計</th></tr>` +
     ROWS.map(({ m, t, total }) => {
       const missAll = t.miss + t.late + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
       return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll - lateAll}</td><td class="num">${lateAll}</td>
       ${free ? `<td class="num">${t.cov} / ${free}</td>` : ""}<td class="num">${t.free}</td>
-      <td class="num ${t.owe ? "money" : "zero"}">$${t.owe}</td><td class="num">$${total}</td></tr>`;
+      <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
     }).join("");
 
   const wk = "日一二三四五六";
@@ -472,7 +484,7 @@ function downloadExcel() {
   const days = monthDays(ym);
   const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "", nodata: "?" };
   const q = v => `"${String(v).replace(/"/g, '""')}"`;
-  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", "累計", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
+  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", "未繳累計", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
   for (const { m, t, total } of ROWS)
     lines.push([m.name, t.ok, t.miss + t.late + t.cov, t.cov, t.free, t.owe, total, ...t.cells.map(c => label[c.st])]);
   const csv = "﻿" + lines.map(l => l.map(q).join(",")).join("\r\n");
@@ -531,6 +543,7 @@ function showSettings() {
     ["開始計算日", normDate(SETTINGS.startDate) || "—"],
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
+    ["已收款至", paidMonth() ? paidMonth().replace("-", " 年 ") + " 月" : "—"],
     ["成員", `${MODEL.members.length} 人<br>
       <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.join ? `（${m.join.slice(5).replace("-", "/")} 加入）` : "")).join("、")}</span>`],
     ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
