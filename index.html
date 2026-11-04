@@ -183,7 +183,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
 const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
-  settingsSheetUrl: "",        // 另外一份「任何人都能編輯」的設定試算表（有填就從這裡讀設定）
+  settingsSheetUrl: "",        // 另外一份設定試算表（有填就從這裡讀設定）
+  settingsTabs: ["規則", "成員", "大堂課免死", "手算調整"],
   archiveGids: [],             // 舊回覆分頁（不再使用）
   startDate: "2026-06-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
@@ -360,6 +361,19 @@ function readSettingsTab(rows) {
     s.exemptions = rows.slice(1).filter(r => (r[iName] || "").trim() && r[iFrom])
       .map(r => [r[iName].trim(), r[iFrom], iTo >= 0 ? r[iTo] : ""].join(",")).join("\n");
   return s;
+}
+
+// 設定來源：有另外的設定試算表就讀它的 4 個分頁（規則／成員／大堂課免死／手算調整），
+// 沒有就讀回報試算表裡的「網站設定」分頁。回傳合併後的設定，找不到任何設定時回傳 null
+async function loadSettingsSource() {
+  if (!CONFIG.settingsSheetUrl) {
+    const rows = await loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab);
+    return readSettingsTab(rows);
+  }
+  const tabs = await Promise.all(CONFIG.settingsTabs.map(t => loadSheet(CONFIG.settingsSheetUrl, t).catch(() => null)));
+  const merged = {};
+  for (const rows of tabs) if (rows) Object.assign(merged, readSettingsTab(rows) || {});
+  return Object.keys(merged).length ? merged : null;
 }
 
 // 支援 "2026/11/3 下午 1:23:45"、"2026-11-03 13:23"、"11/3/2026 1:23:45 PM"
@@ -612,11 +626,11 @@ async function load() {
     const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
     const [rows, setRows, formDb, ...archives] = await Promise.all([
       loadRows(CONFIG.sheetUrl),
-      (CONFIG.settingsSheetUrl ? loadRows(CONFIG.settingsSheetUrl) : loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab)).catch(() => null),
+      loadSettingsSource().catch(() => null),
       fetch("form-members.json?_=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
-    const fromSheet = setRows && readSettingsTab(setRows);
+    const fromSheet = setRows;
     if (!fromSheet) notes.push(`試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
     SETTINGS = { ...CONFIG, ...(fromSheet || {}), formDb };
     if (rows.length < 2) throw new Error("試算表沒有資料。");
