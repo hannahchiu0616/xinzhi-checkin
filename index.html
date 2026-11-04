@@ -453,7 +453,7 @@ function monthDetail(m, ym) {
   const ff = String(SETTINGS.freeFrom || "").match(/(\d{4})\D+(\d{1,2})/) || [];
   const free = ff[1] && ym < `${ff[1]}-${pad(ff[2])}` ? 0 : Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
   const start = normDate(SETTINGS.startDate);
-  const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, nodata: 0, billed: 0, cells: [] };
+  const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, nodata: 0, billed: 0, cells: [], limit: free };
   for (const d of monthDays(ym)) {
     const st = MODEL.status(m, d);
     const billable = !start || d >= start;
@@ -513,7 +513,7 @@ function render() {
       const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
       return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll}</td><td class="num">${lateAll}</td>
-      ${free ? `<td class="num">${t.cov} / ${free}</td>` : ""}<td class="num">${t.free}</td>
+      ${free ? `<td class="num">${t.limit ? `${t.cov} / ${t.limit}` : "—"}</td>` : ""}<td class="num">${t.free}</td>
       <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
     }).join("");
 
