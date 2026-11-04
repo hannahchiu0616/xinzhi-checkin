@@ -445,6 +445,22 @@ function build({ recs, headerMembers }, s) {
   // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
   const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
   for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
+  // Google 表單「姓名」選項的變動（GitHub 每小時記錄一次，存在 form-members.json）
+  // 開始記錄之後才加進選項的人 → 從加進那天開始算；被拿掉的人 → 拿掉前一天是最後一天
+  const fdb = s.formDb;
+  if (fdb && fdb.members) for (const [n, ps] of Object.entries(fdb.members)) {
+    const m = members.find(x => x.name === n);
+    const added = ps.filter(p => p.from > fdb.baseline).map(p => ({ from: p.from, to: p.to || "" }));
+    if (!m) {
+      if (added.length) members.push({ name: n, periods: added, auto: true });
+      continue;
+    }
+    const removed = ps.find(p => p.from <= fdb.baseline && p.to);
+    const last = m.periods[m.periods.length - 1];
+    if (removed && !last.to) last.to = removed.to;
+    m.periods.push(...added);
+  }
+
   // 表單出現新名字 → 自動加成成員，從第一次回報那天開始算
   const listed = new Set(members.map(m => m.name));
   for (const n of Object.keys(byName)) {
@@ -596,14 +612,15 @@ async function load() {
   const notes = [];
   try {
     const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
-    const [rows, setRows, ...archives] = await Promise.all([
+    const [rows, setRows, formDb, ...archives] = await Promise.all([
       loadRows(CONFIG.sheetUrl),
       loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab).catch(() => null),
+      fetch("form-members.json?_=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
     const fromSheet = setRows && readSettingsTab(setRows);
     if (!fromSheet) notes.push(`試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
-    SETTINGS = { ...CONFIG, ...(fromSheet || {}) };
+    SETTINGS = { ...CONFIG, ...(fromSheet || {}), formDb };
     if (rows.length < 2) throw new Error("試算表沒有資料。");
     // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
     const main = toRecords(rows), seen = new Set();
@@ -625,20 +642,29 @@ async function load() {
   if (autoAdded.length) notes.push(`新成員已自動加入：${autoAdded.map(esc).join("、")}（從第一次回報那天開始算）`);
   if (MODEL.unknown.length) notes.push(`這些名字只回報過一天，可能是打錯字，還沒計入：${MODEL.unknown.map(esc).join("、")}`);
   if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
-  showSettings();
 
   const sel = $("month"), keep = sel.value || new URLSearchParams(location.search).get("month");
   sel.innerHTML = MODEL.months.slice().reverse().map(m => `<option value="${m}">${m.replace("-", " 年 ")} 月</option>`).join("");
   if (MODEL.months.includes(keep)) sel.value = keep;
+  showSettings();
   $("updated").textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
   render();
 }
 
 function showSettings() {
-  const ex = parseLines(SETTINGS.exemptions).map(([n, a, b]) => {
+  // 只列出跟目前選的月份有重疊的大堂課，同一段期間的人合併成一行
+  const ym = $("month").value || MODEL.months[MODEL.months.length - 1];
+  const days = monthDays(ym), groups = new Map();
+  for (const [n, a, b] of parseLines(SETTINGS.exemptions)) {
     const st = normDate(a), en = normDate(b) || st;
-    return st ? `${esc(n)}：${addDays(st, -1).slice(5).replace("-", "/")} ~ ${en.slice(5).replace("-", "/")}` : "";
-  }).filter(Boolean);
+    if (!st) continue;
+    const from = addDays(st, -1);
+    if (en < days[0] || from > days[days.length - 1]) continue;
+    const k = `${from.slice(5).replace("-", "/")} ~ ${en.slice(5).replace("-", "/")}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(esc(n));
+  }
+  const ex = [...groups].sort().map(([k, ns]) => `${k}：${ns.join("、")}`);
   $("settingsView").innerHTML = [
     ["開始計算日", normDate(SETTINGS.startDate) || "—"],
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
@@ -647,7 +673,7 @@ function showSettings() {
     ["成員", `${MODEL.members.length} 人<br>
       <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
         ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
-    ["大堂課免死期間", ex.length ? ex.join("<br>") : "無"],
+    [`${+ym.slice(5)} 月大堂課免死`, ex.length ? ex.join("<br>") : "無"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
 
@@ -660,7 +686,7 @@ document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history
 showTab(location.hash.slice(1));
 
 $("sheetLink").href = CONFIG.sheetUrl;
-$("month").onchange = render;
+$("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
 
