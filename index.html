@@ -631,7 +631,9 @@ async function load() {
       ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
     const fromSheet = setRows;
-    if (!fromSheet) notes.push(`試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
+    if (!fromSheet) notes.push(CONFIG.settingsSheetUrl
+      ? "讀不到設定試算表（請確認共用設定是「知道連結的任何人」），目前使用網站內建的預設設定。"
+      : `試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
     SETTINGS = { ...CONFIG, ...(fromSheet || {}), formDb };
     if (rows.length < 2) throw new Error("試算表沒有資料。");
     // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
