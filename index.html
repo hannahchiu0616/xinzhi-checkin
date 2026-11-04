@@ -186,18 +186,45 @@ const CONFIG = {
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
   freePerMonth: 4,
-  members: "",
+  members: `
+汎汎
+文鴻
+勇達
+Amber
+俊宇
+季晴
+美琪
+克強
+千千
+宇熙
+育凱
+Mina
+有紳
+采玲
+享諺
+賜銘
+士軒
+家瑋
+靖貽
+昱愷
+奕昌
+欣潔
+婕綵
+承霖
+韋甄
+姿妤`,
   exemptions: `
 宇熙,2026-10-22,2026-10-25
 家瑋,2026-10-22,2026-10-25
 美琪,2026-10-22,2026-10-25
 克強,2026-10-22,2026-10-25
 有紳,2026-10-22,2026-10-25
-珮汝,2026-10-22,2026-10-25
 勇達,2026-10-22,2026-10-25
 育凱,2026-10-27,2026-10-30
 Mina,2026-10-27,2026-10-30
-千千,2026-10-27,2026-10-30`,
+千千,2026-10-27,2026-10-30
+士軒,2026-10-22,2026-10-25
+承霖,2026-10-22,2026-10-31`,
 };
 /* ===================================================================== */
 
@@ -479,9 +506,9 @@ function render() {
   $("legendCov").hidden = !free;
   $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th><th class="num">未繳累計</th></tr>` +
     ROWS.map(({ m, t, total }) => {
-      const missAll = t.miss + t.late + t.cells.filter(c => c.was === "miss").length;
+      const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
-      return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll - lateAll}</td><td class="num">${lateAll}</td>
+      return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll}</td><td class="num">${lateAll}</td>
       ${free ? `<td class="num">${t.cov} / ${free}</td>` : ""}<td class="num">${t.free}</td>
       <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
     }).join("");
