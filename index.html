@@ -81,6 +81,7 @@ a{color:var(--accent)}
 .report{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--ink);border-color:var(--accent)}
 .report-btn{background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
 .report:hover .report-btn{filter:brightness(1.1)}
+a.report-btn{text-decoration:none;display:inline-block}
 details summary{cursor:pointer;font-weight:600}
 .field{margin-top:14px}
 .field label{display:block;font-weight:600;margin-bottom:4px}
@@ -159,8 +160,11 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>目前設定</h2>
     <dl class="kv" id="settingsView"></dl>
-    <p class="hint" id="settingsHint">設定放在試算表的「網站設定」分頁，只有試算表的編輯者可以修改，改完回這裡按「重新整理」。
-      <a id="sheetLink" target="_blank" rel="noopener">開啟試算表</a></p>
+    <div class="toolbar" style="margin:4px 0 10px">
+      <a class="report-btn" id="settingsLink" target="_blank" rel="noopener">開啟設定試算表 →</a>
+      <a id="responsesLink" target="_blank" rel="noopener">開啟回報試算表</a>
+    </div>
+    <p class="hint">設定試算表：退出／休息、大堂課免死、罰款規則都在這裡改，改完回網站按「重新整理」。<br>回報試算表：大家填表單的原始資料，只能看。</p>
   </div>
 
   <div class="card">
@@ -713,11 +717,8 @@ function showTab(name) {
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
 showTab(location.hash.slice(1));
 
-if (CONFIG.settingsSheetUrl) {
-  $("sheetLink").href = CONFIG.settingsSheetUrl;
-  $("sheetLink").textContent = "修改設定";
-  $("settingsHint").firstChild.textContent = "設定放在另一份試算表，任何人都可以修改，改完回這裡按「重新整理」。";
-} else $("sheetLink").href = CONFIG.sheetUrl;
+$("settingsLink").href = CONFIG.settingsSheetUrl || CONFIG.sheetUrl;
+$("responsesLink").href = CONFIG.sheetUrl;
 $("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
