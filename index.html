@@ -181,29 +181,13 @@ h2{font-size:1.1rem;margin:0 0 12px}
 const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
-  archiveGids: ["141416685"],   // 存放舊回覆的分頁（工作表1）
-  startDate: "2026-06-01",
+  archiveGids: [],             // 舊回覆分頁（不再使用，從 10 月開始算）
+  startDate: "2026-10-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
   freePerMonth: 4,
   members: "",
   exemptions: `
-文鴻,2026-06-06,2026-06-09
-宇熙,2026-06-11,2026-06-14
-勇達,2026-06-11,2026-06-14
-克強,2026-07-04,2026-07-07
-有紳,2026-07-04,2026-07-07
-宇熙,2026-07-04,2026-07-07
-勇達,2026-07-04,2026-07-07
-育凱,2026-07-04,2026-07-07
-季晴,2026-07-09,2026-07-12
-美琪,2026-07-09,2026-07-12
-千千,2026-07-09,2026-07-12
-美琪,2026-08-01,2026-08-04
-育凱,2026-08-01,2026-08-04
-勇達,2026-08-01,2026-08-04
-千千,2026-08-01,2026-08-04
-承霖,2026-08-11,2026-08-14
 宇熙,2026-10-22,2026-10-25
 家瑋,2026-10-22,2026-10-25
 美琪,2026-10-22,2026-10-25
@@ -417,7 +401,7 @@ function build({ recs, headerMembers }, s) {
     return got === "late" ? "late" : "miss";
   }
 
-  const firstDay = [start, recs.map(r => r.day).sort()[0]].filter(Boolean).sort()[0] || current;
+  const firstDay = start || recs.map(r => r.day).sort()[0] || current;
   const months = [];
   for (let d = fromKey(firstDay.slice(0, 8) + "01"); key(d) <= current; d.setMonth(d.getMonth() + 1))
     months.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
