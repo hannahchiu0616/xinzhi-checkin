@@ -838,7 +838,7 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, gro
   };
   if (groupBy) {
     // 依月份分組，最新的月份在最上面
-    let last = null, lastS = null, alt = false;
+    let last = null, alt = true;
     const sk = sortKey || groupBy;   // 越近的越上面
     (rows || []).map(r => ({ r, g: groupBy(r), s: sk(r) })).sort((a, b) => a.s < b.s ? 1 : a.s > b.s ? -1 : 0).forEach(({ r, g, s }) => {
       if (g !== last) {
@@ -846,9 +846,8 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, gro
         h.className = "grp";
         h.innerHTML = `<td colspan="${cols.length + 1}">${g ? `${g.slice(0, 4)} 年 ${+g.slice(5)} 月` : "沒有日期"}</td>`;
         tb.appendChild(h);
-        last = g; lastS = null; alt = true;
+        last = g; alt = !alt;   // 每個月一種底色，換月份就換色
       }
-      if (s !== lastS) { alt = !alt; lastS = s; }   // 同一梯次同一個底色，換梯次就換色
       addRow(r).classList.toggle("alt", alt);
     });
   } else (rows || []).forEach(addRow);
