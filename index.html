@@ -798,9 +798,9 @@ function secSettings() {
 function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy, sortKey, locked }) {
   const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
   $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
-    <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>
-    <div class="edit-actions"><button type="button" class="ghost" data-act="add">＋ 新增一列</button><button type="button" data-act="save">儲存</button></div>
-    <p class="hint msg" id="secMsg"></p>`;
+    <div class="edit-actions" style="margin:0 0 10px"><button type="button" class="ghost" data-act="add">＋ 新增一列</button><button type="button" data-act="save">儲存</button></div>
+    <p class="hint msg" id="secMsg" style="margin:0 0 8px"></p>
+    <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>`;
   const tb = $("adminSec").querySelector("tbody");
   // locked：平常只顯示，按「修改」才能改那一列（新增的一列直接可以改）
   const addRow = (r, editing) => {
@@ -834,7 +834,8 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, gro
       const nr = addRow(newRow ? newRow() : [], true);
       nr.classList.add("editing");
       if (groupBy) tb.prepend(nr);   // 分組的表格：新的一列放最上面
-      nr.querySelector("input").focus();
+      nr.scrollIntoView({ block: "center", behavior: "smooth" });
+      nr.querySelector("input").focus({ preventScroll: true });
     }
     else if (act === "edit") {
       tr.querySelectorAll("input").forEach(i => i.disabled = false);
