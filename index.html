@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>心之使者打卡</title>
+<title>打卡網站</title>
 <style>
 :root{
   --bg:#faf7f2; --card:#ffffff; --ink:#2b2622; --muted:#7a7068; --line:#e8e1d8;
@@ -32,13 +32,12 @@ h1{font-size:1.6rem;margin:0 0 4px}
 .sub{color:var(--muted);margin:0 0 20px;font-size:.95rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.toolbar .spacer{flex:1}
 button,select,input,textarea{font:inherit;color:var(--ink)}
 button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
 button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-select,input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-textarea{width:100%;min-height:90px;font-family:ui-monospace,Consolas,monospace;font-size:.9rem}
-input[type=text],input[type=url]{width:100%}
+button:disabled{opacity:.6;cursor:default}
+select,input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+textarea{width:100%;min-height:120px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
 .stat .k{color:var(--muted);font-size:.85rem}
@@ -56,80 +55,75 @@ td.money{color:var(--bad);font-weight:700}
 td.zero{color:var(--ok);font-weight:700}
 .grid th,.grid td{padding:3px;text-align:center;border:0}
 .grid th.name,.grid td.name{text-align:left;padding-right:10px;position:sticky;left:0;background:var(--card);z-index:1}
-.c{display:inline-block;width:26px;height:26px;line-height:26px;border-radius:6px;font-size:.78rem;font-weight:700;font-style:normal}
+.c{display:inline-block;width:26px;height:26px;line-height:26px;border-radius:6px;font-size:.78rem;font-weight:700;font-style:normal;text-align:center}
 .c.ok{background:var(--ok-bg);color:var(--ok)}
 .c.miss{background:var(--bad-bg);color:var(--bad)}
 .c.late{background:var(--late-bg);color:var(--late)}
 .c.cov{background:var(--cov-bg);color:var(--cov)}
 .c.free{background:var(--free-bg);color:var(--free)}
-.c.na{background:var(--none-bg);color:var(--muted);opacity:.6}
+.c.na{background:var(--none-bg);color:var(--muted);opacity:.6;border:1px solid var(--line)}
 .c.now{background:var(--none-bg);color:var(--accent);outline:1px dashed var(--accent);outline-offset:-1px}
+.c.nodata{background:var(--none-bg);color:var(--muted)}
 .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted);margin-top:12px;align-items:center}
 .legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.legend .c{width:22px;height:22px;line-height:22px;font-size:.72rem;flex:none;text-align:center}
-.c.na{border:1px solid var(--line)}
-.c.nodata{background:var(--none-bg);color:var(--muted)}
+.legend .c{width:22px;height:22px;line-height:22px;font-size:.72rem;flex:none}
 .month-note{margin:-4px 0 12px}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:12px 0}
-.kv dt{color:var(--muted)}
-.kv dd{margin:0}
 a{color:var(--accent)}
 .tabs{display:flex;gap:4px;margin:0 0 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;padding-top:6px}
 .tabs button{background:transparent;color:var(--muted);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 16px;font-weight:600;flex:1;max-width:160px}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
-.panel[hidden]{display:none}
-.report{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--ink);border-color:var(--accent)}
-.report-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
-.report-btn:hover{filter:brightness(1.1)}
-.report-btn:disabled{opacity:.6;filter:none}
+[hidden]{display:none !important}
+.report-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:700;width:100%;margin-top:14px;font-size:1.05rem}
 .rform{max-width:520px;margin:0 auto}
-.rform select,.rform input[type=date],.rform input:not([type]){width:100%;font-size:1rem;box-sizing:border-box}
-.rform + .rform{margin-top:16px}
-/* iPhone 的日期框有自己的最小寬度，會超出畫面 */
-.rform input[type=date]{display:block;min-width:0;max-width:100%;min-height:42px}
-@supports (-webkit-touch-callout: none){.rform input[type=date]{-webkit-appearance:none;appearance:none;line-height:24px;text-align:left;-webkit-min-logical-width:calc(100% - 22px)}}
-.rform input[type=date]::-webkit-date-and-time-value{text-align:left}
-.rform .row2{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
-.rform .row2 > div,.rform .field{min-width:0}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--none-bg);border-radius:10px;padding:4px}
+.rform input,.rform select{width:100%;font-size:1rem}
+.rform input[type=date]{display:block;max-width:100%;min-height:42px}
+@supports (-webkit-touch-callout: none){input[type=date],input[type=month],input[type=time]{-webkit-appearance:none;appearance:none;line-height:24px;text-align:left;-webkit-min-logical-width:calc(100% - 22px);min-height:42px}}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
+.row2 > div,.field{min-width:0}
+.field{margin-top:14px}
+.field label,.lbl{display:block;font-weight:600;margin-bottom:4px}
+.hint{color:var(--muted);font-size:.85rem;margin:4px 0 0}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--none-bg);border-radius:10px;padding:4px}
 .seg button{background:transparent;color:var(--muted);border:0;border-radius:8px;padding:9px 4px;font-weight:600}
-.seg button[aria-selected="true"]{background:var(--card, #fff);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.choice label{display:flex;align-items:center;gap:8px;font-weight:600;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;margin:0}
-.choice label:has(input:checked){border-color:var(--accent)}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
 .names button{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 4px;font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .names button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .names button.new{grid-column:1/-1;color:var(--muted);font-weight:500;border-style:dashed}
 .names button.new[aria-pressed="true"]{color:#fff}
 #reportNew{margin-top:8px}
-.staff-note{margin:14px 0 0;padding:8px 12px;border-radius:8px;background:var(--late-bg);color:var(--late);font-weight:600;font-size:.9rem}
 .rlist{margin:0;padding:0;list-style:none}
 .rlist li{padding:8px 0;border-top:1px solid var(--line)}
 .rlist li:first-child{border-top:0}
 .rlist b{display:block}
-.rform #reportNew{margin-top:8px}
-.rform .report-btn{width:100%;margin-top:14px;font-size:1.05rem;padding:12px}
 .mine{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
 .mine span{text-align:center;font-size:.75rem;color:var(--muted)}
-.report-msg{margin:10px 0 0}
+.msg{margin:10px 0 0}
+.msg.ok{color:var(--ok);font-weight:600}
+.msg.err{color:var(--bad);font-weight:600}
 body.on-report .toolbar{display:none}
-.report-msg.ok{color:var(--ok);font-weight:600}
-.report-msg.err{color:var(--bad);font-weight:600}
-.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 4px}
-.link-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);background:var(--bg);transition:border-color .15s}
-.link-card:hover{border-color:var(--accent)}
-.link-card .hint{margin:0}
-.lc-title{font-weight:700}
-.lc-go{color:var(--accent);font-weight:600;font-size:.9rem;margin-top:4px}
-details summary{cursor:pointer;font-weight:600}
-.field{margin-top:14px}
-.field label{display:block;font-weight:600;margin-bottom:4px}
-.hint{color:var(--muted);font-size:.85rem;margin:4px 0 0}
 .rules{font-size:.9rem;color:var(--muted);margin:0;padding-left:20px}
 h2{font-size:1.1rem;margin:0 0 12px}
-.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-/* 手機：表格自己捲動，日期列固定在上面、名字欄固定在左邊 */
+/* 管理頁 */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chips button{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600}
+.chips button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.admin-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-head .spacer{flex:1}
+table.edit td{padding:4px;border:0}
+table.edit th{padding:4px}
+table.edit input{width:100%;min-width:110px}
+.row-act{white-space:nowrap}
+button.sm{padding:4px 9px;font-size:.85rem}
+.edit-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:4px 16px}
+.form-grid input,.form-grid textarea{width:100%}
+.form-grid .wide{grid-column:1/-1}
+.glist{display:grid;gap:10px}
+.gitem{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg)}
+.gitem b{font-size:1.05rem}
+.copy{display:flex;gap:6px;margin-top:6px}
+.copy input{flex:1}
 @media (max-width: 700px){
   .wrap{padding:16px 10px 40px}
   h1{font-size:1.3rem}
@@ -154,11 +148,13 @@ h2{font-size:1.1rem;margin:0 0 12px}
 </head>
 <body>
 <div class="wrap">
-  <h1>心之使者打卡</h1>
-  <p class="sub">觀心書每日回報狀況與功德金結算 · 計算區間為當日中午 12:00 至隔日中午 12:00</p>
+  <h1 id="title">打卡網站</h1>
+  <p class="sub" id="subtitle"></p>
 
   <div id="banner"></div>
 
+  <!-- ===== 群組頁 ===== -->
+  <div id="groupView" hidden>
   <div class="card toolbar">
     <label for="month">月份</label>
     <select id="month"></select>
@@ -168,12 +164,50 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <button role="tab" data-tab="report">回報專區</button>
     <button role="tab" data-tab="daily">回報紀錄</button>
     <button role="tab" data-tab="summary">本月結算</button>
-    <button role="tab" data-tab="settings">設定</button>
+    <button role="tab" data-tab="admin">管理</button>
   </nav>
 
-  <section class="panel" data-panel="summary">
-  <div class="stats" id="stats"></div>
+  <section class="panel" data-panel="report" hidden>
+  <form class="card rform" id="reportForm" novalidate autocomplete="off">
+    <div class="seg" id="kindSeg">
+      <button type="button" data-kind="daily">每日回報</button>
+      <button type="button" data-kind="class" id="kindClass">請假回報</button>
+    </div>
+    <div class="field">
+      <span class="lbl">名字</span>
+      <div class="names" id="nameButtons"></div>
+      <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
+    </div>
+    <div data-kind-panel="class" hidden>
+      <div class="field row2">
+        <div><label for="classFrom" id="classFromLbl">第一天</label><input type="date" id="classFrom"></div>
+        <div><label for="classTo" id="classToLbl">最後一天</label><input type="date" id="classTo"></div>
+      </div>
+    </div>
+    <p class="hint" id="reportHint"></p>
+    <button type="submit" class="report-btn" id="reportBtn">已完成 ✅ 送出回報</button>
+    <p class="hint msg" id="reportMsg"></p>
+    <div id="reportMine"></div>
+  </form>
+  <div class="card rform" id="reportList" hidden></div>
+  <p class="hint" style="text-align:center"><a href="#daily">查看大家的回報狀況 →</a></p>
+  </section>
 
+  <section class="panel" data-panel="daily" hidden>
+  <div class="card" id="rulesCard">
+    <h2>規則</h2>
+    <ol class="rules" id="rulesList"></ol>
+  </div>
+  <div class="card">
+    <h2>回報紀錄</h2>
+    <p class="hint month-note" hidden></p>
+    <div class="scroll tall"><table class="grid" id="grid"></table></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  </section>
+
+  <section class="panel" data-panel="summary" hidden>
+  <div class="stats" id="stats"></div>
   <div class="card" style="margin-top:16px">
     <h2>本月結算</h2>
     <p class="hint month-note" hidden></p>
@@ -181,278 +215,93 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </div>
   </section>
 
-  <section class="panel" data-panel="report" hidden>
-  <form class="card rform" id="reportForm" novalidate autocomplete="off">
-    <div class="seg" role="tablist">
-      <button type="button" data-kind="daily">每日回報</button>
-      <button type="button" data-kind="class">大堂課回報</button>
-      <button type="button" data-kind="pause">退出／休息</button>
-    </div>
-    <p class="staff-note" data-kind-panel="pause" hidden>⚠️ 此區由負責人員填寫</p>
-    <div class="field">
-      <label>名字</label>
-      <select id="reportName" hidden><option value="">選擇名字</option></select>
-      <div class="names" id="nameButtons"></div>
-      <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
-    </div>
-    <div data-kind-panel="class" hidden>
-      <div class="field row2">
-        <div><label for="classFrom">大堂課第一天</label><input type="date" id="classFrom"></div>
-        <div><label for="classTo">大堂課最後一天</label><input type="date" id="classTo"></div>
+  <section class="panel" data-panel="admin" hidden>
+    <div id="adminPanel" hidden>
+      <div class="card admin-head">
+        <span>已登入：<b id="adminEmail"></b></span><span class="spacer"></span>
+        <button type="button" class="ghost sm" id="logoutBtn">登出</button>
       </div>
+      <div class="chips" id="adminChips"></div>
+      <div class="card" id="adminSec"></div>
     </div>
-    <div data-kind-panel="pause" hidden>
-      <div class="field">
-        <label>類型</label>
-        <div class="choice">
-          <label><input type="radio" name="pauseKind" value="休息" checked> 短暫休息</label>
-          <label><input type="radio" name="pauseKind" value="退出"> 退出</label>
+  </section>
+  </div>
+
+  <!-- ===== 總管理（?admin） ===== -->
+  <div id="ownerView" hidden>
+    <div id="ownerPanel" hidden>
+      <div class="card admin-head">
+        <span>總管理：<b id="ownerEmail"></b></span><span class="spacer"></span>
+        <button type="button" class="ghost sm" id="ownerLogout">登出</button>
+      </div>
+      <div class="card">
+        <h2>建立新群組</h2>
+        <div class="form-grid">
+          <div class="field"><label for="newName">群組名稱</label><input id="newName" placeholder="例如：讀書會打卡"></div>
+          <div class="field"><label for="newAdmins">負責人 Email（可以多個，用逗號分開）</label><input id="newAdmins" placeholder="a@gmail.com, b@gmail.com"></div>
         </div>
+        <button type="button" id="createBtn" style="margin-top:14px">建立群組</button>
+        <p class="hint msg" id="createMsg"></p>
       </div>
-      <div class="field row2">
-        <div><label for="pauseFrom">從哪天開始不計算</label><input type="date" id="pauseFrom"></div>
-        <div id="pauseBackWrap"><label for="pauseBack">回歸日期（不確定可以空白）</label><input type="date" id="pauseBack"></div>
-      </div>
-      <div class="field">
-        <label for="pauseWhy">原因</label><input id="pauseWhy" maxlength="50" placeholder="例如：出國、身體不適">
+      <div class="card">
+        <h2>所有群組</h2>
+        <div class="glist" id="groupList"></div>
       </div>
     </div>
-    <p class="hint" id="reportHint"></p>
-    <button type="submit" class="report-btn" id="reportBtn">已完成 ✅ 送出回報</button>
-    <p class="hint report-msg" id="reportMsg"></p>
-    <div id="reportMine"></div>
-  </form>
-  <div class="card rform" id="reportList" hidden></div>
-  <p class="hint" style="text-align:center"><a href="#daily">查看大家的回報狀況 →</a></p>
-  </section>
-
-  <section class="panel" data-panel="daily">
-
-  <div class="card">
-    <h2>定課規則</h2>
-    <ol class="rules">
-        <li>每日寫觀心書，沒寫一篇罰 50 元功德金</li>
-        <li>計算時間為當日中午 12 點至隔日中午 12 點，回報時選是哪一天的觀心書</li>
-        <li>隔天中午 12 點前 po 出並在網站回報；沒回報視同沒寫，超過時間回報算遲交</li>
-        <li>每人每月有 4 次免死金牌，第 5 次缺交起才罰款；一個月收一次功德金</li>
-        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天）</li>    </ol>
   </div>
 
-  <div class="card">
-    <h2>回報紀錄</h2>
-    <p class="hint month-note" hidden></p>
-    <div class="scroll tall"><table class="grid" id="grid"></table></div>
-    <div class="legend">
-      <span><i class="c ok">✓</i>已回報</span>
-      <span id="legendCov"><i class="c cov">抵</i>缺交，用每月免死次數抵掉</span>
-      <span><i class="c miss">✗</i>缺交（罰 50 元）</span>
-      <span><i class="c late">遲</i>超過隔日 12:00（視同沒寫）</span>
-      <span><i class="c free">免</i>大堂課免死金牌</span>
-      <span><i class="c now">…</i>還在計算區間內</span>
-      <span><i class="c nodata">?</i>沒有資料</span>
-      <span><i class="c na">·</i>不計算</span>
+  <!-- 登入（管理頁和總管理共用） -->
+  <div class="card rform" id="loginCard" hidden>
+    <h2>管理登入</h2>
+    <p class="hint">只有管理員可以修改。輸入你的 Email，系統會寄 6 位數驗證碼到你的信箱。</p>
+    <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" inputmode="email"></div>
+    <button type="button" class="report-btn" id="sendCode">寄驗證碼</button>
+    <div id="codeStep" hidden>
+      <div class="field"><label for="loginCode">驗證碼</label><input id="loginCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></div>
+      <button type="button" class="report-btn" id="verifyBtn">登入</button>
     </div>
+    <p class="hint msg" id="loginMsg"></p>
   </div>
-  </section>
-
-  <section class="panel" data-panel="settings">
-  <div class="card">
-    <h2>目前設定</h2>
-    <dl class="kv" id="settingsView"></dl>
-    <div class="links">
-      <a class="link-card" id="settingsLink" target="_blank" rel="noopener">
-        <span class="lc-title">設定試算表</span>
-        <span class="hint">退出／休息、大堂課免死、罰款規則，「回報」分頁是大家在網站的回報紀錄。改完回網站按「重新整理」</span>
-        <span class="lc-go">開啟 →</span>
-      </a>
-    </div>
-  </div>
-  </section>
+  <datalist id="memberNames"></datalist>
 </div>
 
 <script>
-/* ===== 資料來源與預設值（試算表「網站設定」分頁的內容會蓋過這裡） ===== */
-const CONFIG = {
-  history: "history.csv",      // 舊 Google 表單的回報紀錄（11/4 存下來的備份）
-  formUntil: "2026-11-03",     // 舊表單的資料只算到這一天，之後改用網站回報
-  settingsSheetUrl: "https://docs.google.com/spreadsheets/d/1EIGk9C9_UwtMlHjbn-pUjHjzK3SwNOu6RI76Hi1v3eQ/edit",
-  settingsTabs: ["規則", "成員", "大堂課免死", "手算調整"],
-  reportTab: "回報",           // 網站回報寫在設定試算表的這個分頁
-  reportApi: "https://script.google.com/macros/s/AKfycbyhKffbfndynk44KL4EypMjVBto1OhvOBnQy0zS2li_nmtzwrk8aXaMGAwYUfjCosZo/exec",               // Apps Script 網頁應用程式網址（apps-script.gs 部署後貼上）
-  startDate: "2026-06-01",
-  paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
-  fine: 50,
-  freePerMonth: 4,
-  freeFrom: "2026-10",        // 每月免死次數從這個月開始（9 月沒有）
-  members: `
-汎汎
-文鴻
-勇達
-Amber
-俊宇
-季晴
-美琪
-克強
-千千
-宇熙
-育凱
-Mina
-有紳
-采玲
-享諺
-賜銘
-士軒
-家瑋
-靖貽
-昱愷
-奕昌,2026-07-20
-欣潔
-婕綵
-承霖,,2026-10-27
-韋甄,2026-09-20
-姿妤`,
-  // 手算調整：名字,月份,金額 → 那個月以手算金額為準
-  overrides: `
-士軒,2026-08,250
-韋甄,2026-08,50
-韋甄,2026-07,400
-克強,2026-07,450
-宇熙,2026-07,100
-婕綵,2026-07,100
-勇達,2026-06,200`,
-  exemptions: `
-文鴻,2026-06-06,2026-06-09
-宇熙,2026-06-11,2026-06-14
-勇達,2026-06-11,2026-06-14
-Amber,2026-06-11,2026-06-14
-克強,2026-07-04,2026-07-07
-有紳,2026-07-04,2026-07-07
-宇熙,2026-07-04,2026-07-07
-勇達,2026-07-04,2026-07-07
-育凱,2026-07-04,2026-07-07
-季晴,2026-07-09,2026-07-12
-美琪,2026-07-09,2026-07-12
-千千,2026-07-09,2026-07-12
-美琪,2026-08-01,2026-08-04
-育凱,2026-08-01,2026-08-04
-勇達,2026-08-01,2026-08-04
-千千,2026-08-01,2026-08-04
-承霖,2026-08-11,2026-08-14
-宇熙,2026-10-22,2026-10-25
-家瑋,2026-10-22,2026-10-25
-美琪,2026-10-22,2026-10-25
-克強,2026-10-22,2026-10-25
-有紳,2026-10-22,2026-10-25
-勇達,2026-10-22,2026-10-25
-育凱,2026-10-28,2026-10-30
-Mina,2026-10-27,2026-10-30
-千千,2026-10-27,2026-10-30
-士軒,2026-10-22,2026-10-25
-承霖,2026-10-22,2026-10-31`,
-};
-/* ===================================================================== */
+/* ===== 後端（Google Apps Script）網址：所有群組共用 ===== */
+const API = "https://script.google.com/macros/s/AKfycbyhKffbfndynk44KL4EypMjVBto1OhvOBnQy0zS2li_nmtzwrk8aXaMGAwYUfjCosZo/exec";
+const PARAMS = new URLSearchParams(location.search);
+const G = PARAMS.get("g") || "xinzhi";       // 群組代碼（沒帶的話是心之使者，舊網址照樣能用）
+const OWNER_MODE = PARAMS.has("admin");      // 總管理頁
 
 const $ = id => document.getElementById(id);
-const GRACE_MS = 60 * 1000;   // 中午 12:00:59 以前都還算前一天
+const GRACE_MS = 60 * 1000;   // 切換時間後 59 秒內都還算前一天
 const pad = n => String(n).padStart(2, "0");
 const key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return key(d); };
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+const wkOf = d => "日一二三四五六"[fromKey(d).getDay()];
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} },
+};
 
-/* ---------- 讀取試算表 ---------- */
-function parseCSV(text) {
-  const rows = []; let row = [], f = "", q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (q) {
-      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
-      else f += c;
-    } else if (c === '"') q = true;
-    else if (c === ",") { row.push(f); f = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(f); rows.push(row); row = []; f = "";
-    } else f += c;
-  }
-  if (f || row.length) { row.push(f); rows.push(row); }
-  return rows.filter(r => r.some(x => x.trim()));
+let DATA = null, SETTINGS = {}, MODEL = null, ROWS = [];
+
+/* ---------- 每天的切換時間（預設中午 12:00） ---------- */
+function cutMs() {
+  const m = String(SETTINGS.cutoff || "12:00").match(/(\d{1,2}):(\d{2})/);
+  return m ? (+m[1] * 60 + +m[2]) * 60e3 : 12 * 3600e3;
 }
-
-// gviz 的 JSONP 方式（不受跨網域限制）
-let cbSeq = 0;
-function loadSheet(url, sheetName) {
-  const id = (url.match(/\/spreadsheets\/d\/([\w-]+)/) || [])[1];
-  if (!id || id === "e") return Promise.reject(new Error("看不懂這個試算表連結，請貼上試算表的編輯或檢視網址。"));
-  const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1] || "0";
-  const which = sheetName ? `sheet=${encodeURIComponent(sheetName)}` : `gid=${gid}`;
-  return new Promise((resolve, reject) => {
-    const cb = `gviz_${Date.now()}_${cbSeq++}`;
-    const s = document.createElement("script");
-    const timer = setTimeout(() => { done(); reject(new Error("讀取逾時。請確認試算表共用設定為「知道連結的任何人都能檢視」。")); }, 20000);
-    function done() { clearTimeout(timer); delete window[cb]; s.remove(); }
-    window[cb] = data => {
-      done();
-      if (data.status === "error") reject(new Error("試算表回傳錯誤：" + (data.errors || []).map(e => e.detailed_message || e.message).join("；")));
-      else resolve(tableToRows(data.table));
-    };
-    s.onerror = () => { done(); reject(new Error("無法連到 Google 試算表，請檢查網路。")); };
-    s.src = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json;responseHandler:${cb}&headers=1&${which}&_=${Date.now()}`;
-    document.head.appendChild(s);
-  });
-}
-
-function tableToRows(table) {
-  const cell = c => {
-    if (!c || c.v == null) return "";
-    const m = typeof c.v === "string" && c.v.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
-    if (m) return `${m[1]}/${+m[2] + 1}/${m[3]} ${m[4] || 0}:${pad(m[5] || 0)}:${pad(m[6] || 0)}`;
-    return c.f != null ? String(c.f) : String(c.v);
-  };
-  return [table.cols.map(c => c.label || ""), ...table.rows.map(r => (r.c || []).map(cell))];
-}
-
-// 「網站設定」分頁：第一列是標題
-// 開始計算日｜每人每月免死次數｜每次罰款｜（空）｜名字｜大堂課第一天｜大堂課最後一天｜（空）｜成員｜加入日期
-// 找不到這個分頁時 Google 會回傳第一個分頁，所以靠標題判斷是不是設定分頁
-function readSettingsTab(rows) {
-  const h = rows[0].map(x => x.trim());
-  const col = re => h.findIndex(x => re.test(x));
-  const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
-  const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天/);
-  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iEnd = col(/結束日期/), iPaid = col(/已收款/), iFreeFrom = col(/免死從/);
-  if ([iStart, iFree, iFine, iName, iMember, iPaid].every(i => i < 0)) return null;
-  const s = {}, first = rows[1] || [];
-  if (iPaid >= 0 && first[iPaid]) s.paidThrough = first[iPaid];
-  const iOName = col(/^手算名字$/), iOMonth = col(/^手算月份$/), iOAmt = col(/^手算金額$/);
-  if (iOName >= 0 && iOMonth >= 0 && iOAmt >= 0)
-    s.overrides = rows.slice(1).filter(r => (r[iOName] || "").trim() && r[iOMonth] && r[iOAmt] !== "")
-      .map(r => [r[iOName].trim(), r[iOMonth], r[iOAmt]].join(",")).join("\n");
-  if (iFreeFrom >= 0 && first[iFreeFrom]) s.freeFrom = first[iFreeFrom];
-  // 新格式：成員｜不計算開始日｜回歸日期｜原因 → 只列退出／休息的人
-  const iPause = col(/不計算開始/), iBack = col(/回歸/), iWhy = col(/原因/);
-  if (iMember >= 0 && iPause >= 0)
-    s.pauses = rows.slice(1).filter(r => (r[iMember] || "").trim() && r[iPause])
-      .map(r => [r[iMember].trim(), r[iPause], iBack >= 0 ? r[iBack] || "" : "", iWhy >= 0 ? (r[iWhy] || "").replace(/,/g, "，") : ""].join(",")).join("\n");
-  else if (iMember >= 0)
-    s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
-      .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : "", iEnd >= 0 ? r[iEnd] : ""].join(",")).join("\n");
-  if (iStart >= 0 && first[iStart]) s.startDate = first[iStart];
-  if (iFree >= 0 && first[iFree] !== "" && first[iFree] != null) s.freePerMonth = first[iFree];
-  if (iFine >= 0 && first[iFine]) s.fine = first[iFine];
-  if (iName >= 0 && iFrom >= 0)
-    s.exemptions = rows.slice(1).filter(r => (r[iName] || "").trim() && r[iFrom])
-      .map(r => [r[iName].trim(), r[iFrom], iTo >= 0 ? r[iTo] : ""].join(",")).join("\n");
-  return s;
-}
-
-// 設定來源：設定試算表的 4 個分頁（規則／成員／大堂課免死／手算調整）
-// 回傳合併後的設定，找不到任何設定時回傳 null
-async function loadSettingsSource() {
-  const tabs = await Promise.all(CONFIG.settingsTabs.map(t => loadSheet(CONFIG.settingsSheetUrl, t).catch(() => null)));
-  const merged = {};
-  for (const rows of tabs) if (rows) Object.assign(merged, readSettingsTab(rows) || {});
-  return Object.keys(merged).length ? merged : null;
+const dayOf = t => key(new Date(t - cutMs() - GRACE_MS));                       // 這個時間點的回報算哪一天
+const deadlineOf = d => fromKey(addDays(d, 1)).getTime() + cutMs() + GRACE_MS;  // 那一天最晚幾點前要回報
+const nowDay = () => dayOf(Date.now());
+function cutLabel() {
+  const m = String(SETTINGS.cutoff || "12:00").match(/(\d{1,2}):(\d{2})/) || [, "12", "00"];
+  const h = +m[1];
+  if (h === 12 && m[2] === "00") return "中午 12:00";
+  if (h === 0 && m[2] === "00") return "午夜 12:00";
+  return `${h < 12 ? "上午" : "下午"} ${h % 12 || 12}:${m[2]}`;
 }
 
 // 支援 "2026/11/3 下午 1:23:45"、"2026-11-03 13:23"、"11/3/2026 1:23:45 PM"
@@ -474,52 +323,52 @@ function parseDateTime(s) {
   return new Date(+y, +mo - 1, +d, h, mi, se);
 }
 function normDate(s) { const p = parseDateTime(s); return p ? key(p) : ""; }
+function normMonth(s) { const m = String(s || "").match(/(\d{4})\D+(\d{1,2})/); return m ? `${m[1]}-${pad(m[2])}` : ""; }
 
-/* ---------- 換算每筆回覆 ---------- */
+/* ---------- 讀資料 ---------- */
+const lines = rows => (rows || []).map(r => r.map(x => String(x).replace(/[,，\t\n]/g, " ")).join(",")).join("\n");
+function parseLines(text) {
+  return (text || "").split(/\n/).map(l => l.split(",").map(x => x.trim())).filter(p => p[0]);
+}
+function readSettings(d) {
+  const s = d.settings || {}, int = (v, def) => { const n = parseInt(v, 10); return isNaN(n) ? def : n; };
+  return {
+    title: s["名稱"] || "打卡網站", subtitle: s["副標題"] || "", task: s["任務名稱"] || "任務", fineName: s["罰款名稱"] || "罰款",
+    startDate: s["開始計算日"] || "", fine: int(s["每次罰款"], 0), freePerMonth: int(s["每月免死次數"], 0), freeFrom: s["免死從"] || "",
+    cutoff: s["切換時間"] || "12:00", exName: (s["免除名稱"] || "").trim(), exBefore: int(s["免除提前天數"], 0), rules: s["規則說明"] || "",
+    keepMonths: int(s["保留月數"], 0),
+    members: lines(d["成員"]), exemptions: lines(d["免除"]), pauses: lines(d["退出休息"]), overrides: lines(d["手算調整"]),
+  };
+}
+
+/* ---------- 換算每筆回報 ---------- */
 function toRecords(rows) {
-  const header = rows[0].map(h => h.trim());
-  const tCol = Math.max(0, header.findIndex(h => /時間戳記|timestamp/i.test(h)));
-  const nCol = header.findIndex((h, i) => i !== tCol && /^(姓名|名字|稱呼|名稱|name)$/i.test(h));
-  const dCol = header.findIndex(h => /^(回報|觀心書|統計)?日期$/.test(h));
-  if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認資料格式。");
-  const headerMembers = header.map(h => (h.match(/^(.+?)\s*[（(]免死[)）]$/) || [])[1]).filter(Boolean);
-
   const recs = [];
-  for (const r of rows.slice(1)) {
-    const raw = (r[nCol] || "").trim();
-    const ts = parseDateTime(r[tCol]);
-    if (!raw || !ts || raw === header[nCol]) continue;
-    const tag = (raw.match(/[（(](.*)$/) || [])[1] || "";   // 括號沒打完整也算，例如「承霖(遲交ㄢ」
+  for (const r of rows) {
+    const raw = String(r[1] || "").trim(), ts = parseDateTime(r[0]);
+    if (!raw || !ts) continue;
+    const tag = (raw.match(/[（(](.*)$/) || [])[1] || "";   // 舊表單的「(重複)」「(練習)」「(遲交)」，括號沒打完整也算
     if (/重複|練習/.test(tag)) continue;
     const name = raw.replace(/\s*[（(].*$/, "").trim();
-    // 中午 12:00:59 以前都還算前一天（跟手算時的寬容一致）
-    let day = key(new Date(ts.getTime() - 12 * 3600e3 - GRACE_MS)), late = false;
-    const claimed = dCol >= 0 ? normDate(r[dCol]) : "";
+    let day = dayOf(ts.getTime()), late = false;
+    const claimed = normDate(r[2]);
     if (/遲交/.test(tag)) { day = addDays(day, -1); late = true; }
     else if (claimed) {
       day = claimed;
-      const deadline = fromKey(addDays(day, 1)); deadline.setHours(12); deadline.setTime(deadline.getTime() + GRACE_MS);
-      late = ts > deadline;
+      late = !/補登/.test(r[3] || "") && ts.getTime() > deadlineOf(day);   // 管理員補登的不算遲交
     }
-    recs.push({ name, day, late, dated: !!claimed, ts: ts.getTime(), id: raw + "|" + ts.getTime() + "|" + day });
+    recs.push({ name, day, late, dated: !!claimed, ts: ts.getTime() });
   }
-  return { recs, headerMembers };
-}
-
-function parseLines(text) {
-  return (text || "").split(/\n/).map(l => l.split(/[,，\t]/).map(x => x.trim())).filter(p => p[0]);
+  return recs;
 }
 
 /* ---------- 建立計算模型 ---------- */
-function build({ recs, headerMembers }, s) {
-  const now = new Date();
-  const shifted = new Date(now.getTime() - 12 * 3600e3);
-  const current = key(shifted);            // 目前還在進行中的那一天
+function build(recs, s) {
+  const current = nowDay();                // 目前還在進行中的那一天
   const start = normDate(s.startDate);
 
-  // 同一人兩次送出相隔不到 1 小時 → 當成不小心送了兩次，第二次不算（避免跨過中午被算成隔天）
+  // 同一人兩次送出相隔不到 1 小時 → 當成不小心送了兩次（只看舊表單的紀錄；網站回報有自己的日期）
   const lastTs = {};
-  // （網站回報有自己選日期，不用這個判斷）
   recs = recs.slice().sort((a, b) => a.ts - b.ts).filter(r => {
     const dup = !r.dated && lastTs[r.name] && r.ts - lastTs[r.name] < 3600e3;
     lastTs[r.name] = r.ts;
@@ -533,49 +382,51 @@ function build({ recs, headerMembers }, s) {
     if (!prev || (prev === "late" && !r.late)) p.days[r.day] = r.late ? "late" : "ok";
   }
 
-  // 成員可以寫好幾行：名字,加入日期,結束日期 → 每行是一段計算期間（中間停的日子不計算）
+  // 成員可以寫好幾行：名字,加入日期,結束日期 → 每行是一段計算期間
   const byMember = new Map();
-  let lines = parseLines(s.members);
-  if (!lines.length) lines = (headerMembers.length ? headerMembers : Object.keys(byName)).map(n => [n]);
-  for (const [n, j, e] of lines) {
+  for (const [n, j, e] of parseLines(s.members)) {
     if (!byMember.has(n)) byMember.set(n, { name: n, periods: [] });
     byMember.get(n).periods.push({ from: normDate(j), to: normDate(e) });
   }
   const members = [...byMember.values()];
-  // 沒填加入日期的人，從第一次回報那天開始算
+  // 沒填加入日期的人，從第一次回報那天開始算；從來沒回報過的先不計算
   for (const m of members) for (const p of m.periods) if (!p.from && byName[m.name]) p.from = byName[m.name].first;
-  // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
   const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
   for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
-
-  // 回報出現新名字 → 自動加成成員，從第一次回報那天開始算
+  // 回報出現新名字 → 自動加成成員
   const listed = new Set(members.map(m => m.name));
-  for (const n of Object.keys(byName)) {
-    if (listed.has(n)) continue;
-    members.push({ name: n, periods: [{ from: byName[n].first, to: "" }], auto: true });
-  }
+  for (const n of Object.keys(byName)) if (!listed.has(n)) members.push({ name: n, periods: [{ from: byName[n].first, to: "" }], auto: true });
   for (const m of members) m.join = m.periods.map(p => p.from).sort()[0] || "";
 
-  // 某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」不算缺交
+  // 舊表單紀錄裡某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」（網站回報開始之後不適用）
   const perDay = {};
   for (const r of recs) perDay[r.day] = (perDay[r.day] || 0) + 1;
+  const webStart = recs.filter(r => r.dated).map(r => r.day).sort()[0] || current;
+  const hasHistory = recs.some(r => !r.dated);
   const minPerDay = Math.max(3, Math.round(members.length * 0.25));
-  const noData = day => (perDay[day] || 0) < minPerDay;
+  const noData = day => hasHistory && day < webStart && (perDay[day] || 0) < minPerDay;
 
   const ex = parseLines(s.exemptions).map(([n, a, b]) => {
     const st = normDate(a), en = normDate(b) || st;
-    return st ? { name: n, from: addDays(st, -1), to: en } : null;
+    return st ? { name: n, from: addDays(st, -s.exBefore), to: en } : null;
   }).filter(Boolean);
 
   // 退出／休息：不計算開始日起，到回歸日期前一天（沒寫回歸日期 → 一直不計算）
   const pauses = parseLines(s.pauses).map(([name, a, b, why]) => ({ name, from: normDate(a), back: normDate(b), why: why || "" }))
     .filter(p => p.from);
 
+  let firstDay = start || recs.map(r => r.day).sort()[0] || current;
+  // 資料只保留最近 N 個月：更早的月份不顯示
+  if (s.keepMonths > 0) {
+    const k = fromKey(current.slice(0, 8) + "01");
+    k.setMonth(k.getMonth() - (s.keepMonths - 1));
+    if (key(k) > firstDay) firstDay = key(k);
+  }
   function status(m, day) {
     if (day < firstDay) return "na";
     if (!m.periods.some(p => (!p.from || day >= p.from) && (!p.to || day <= p.to))) return "na";
     if (pauses.some(p => p.name === m.name && day >= p.from && (!p.back || day < p.back))) return "na";
-    // 大堂課期間一律算免（有沒有回報都一樣），還沒到的日子也先標出來
+    // 免除期間一律算免（有沒有回報都一樣），還沒到的日子也先標出來
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
     if (day > current) return "na";
     const got = byName[m.name]?.days[day];
@@ -585,21 +436,18 @@ function build({ recs, headerMembers }, s) {
     return got === "late" ? "late" : "miss";
   }
 
-  const firstDay = start || recs.map(r => r.day).sort()[0] || current;
   const months = [];
   for (let d = fromKey(firstDay.slice(0, 8) + "01"); key(d) <= current; d.setMonth(d.getMonth() + 1))
     months.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
   if (!months.length) months.push(current.slice(0, 7));
 
-  const known = new Set(members.map(m => m.name));
-  const unknown = Object.keys(byName).filter(n => !known.has(n) && (!start || Object.keys(byName[n].days).some(d => d >= start)));
   // 在某天以前就已經退出（沒寫回歸日期的退出，或成員期間已結束）
   function exitedBefore(m, day) {
     if (pauses.some(p => p.name === m.name && !p.back && p.from <= day)) return true;
     const last = m.periods[m.periods.length - 1];
     return !!(last && last.to && last.to < day);
   }
-  return { members, status, months, unknown, never, pauses, exitedBefore, byName, lastTs, current };
+  return { members, status, months, never, pauses, exitedBefore, byName, current };
 }
 
 function monthDays(ym) {
@@ -607,11 +455,10 @@ function monthDays(ym) {
   return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${ym}-${pad(i + 1)}`);
 }
 
-// 依日期順序計算，每月前 N 次缺交（含遲交）用免死次數抵掉
-// 開始計算日之前的日子只顯示回報狀況，不計功德金
+// 依日期順序計算，每月前 N 次缺交（含遲交）用免死次數抵掉；開始計算日之前不計罰款
 function monthDetail(m, ym) {
-  const ff = String(SETTINGS.freeFrom || "").match(/(\d{4})\D+(\d{1,2})/) || [];
-  const free = ff[1] && ym < `${ff[1]}-${pad(ff[2])}` ? 0 : Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
+  const ff = normMonth(SETTINGS.freeFrom);
+  const free = ff && ym < ff ? 0 : Math.max(0, SETTINGS.freePerMonth);
   const start = normDate(SETTINGS.startDate);
   const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, nodata: 0, billed: 0, cells: [], limit: free };
   for (const d of monthDays(ym)) {
@@ -622,261 +469,214 @@ function monthDetail(m, ym) {
     if (billable && (st === "miss" || st === "late")) t.billed++;
     t.cells.push({ d, st });
   }
-  t.owe = t.billed * (+SETTINGS.fine || 50);
-  const ov = parseLines(SETTINGS.overrides).find(([n, mo]) => {
-    const x = String(mo).match(/(\d{4})\D+(\d{1,2})/);
-    return n === m.name && x && `${x[1]}-${pad(x[2])}` === ym;
-  });
-  if (ov) { t.calc = t.owe; t.owe = +String(ov[2]).replace(/[^\d.-]/g, "") || 0; t.manual = true; }
+  t.owe = t.billed * SETTINGS.fine;
+  const ov = parseLines(SETTINGS.overrides).find(([n, mo]) => n === m.name && normMonth(mo) === ym);
+  if (ov) { t.owe = +String(ov[2]).replace(/[^\d.-]/g, "") || 0; t.manual = true; }
   return t;
 }
 
-let MODEL = null, SETTINGS = { ...CONFIG }, ROWS = [];
-
-// "2026/10"、"2026-10"、"2026/10/1" → "2026-10"
-function paidMonth() {
-  const m = String(SETTINGS.paidThrough || "").match(/(\d{4})\D+(\d{1,2})/);
-  return m ? `${m[1]}-${pad(m[2])}` : "";
+/* ---------- 畫面 ---------- */
+function renderStatic() {
+  const S = SETTINGS;
+  document.title = S.title;
+  $("title").textContent = S.title;
+  $("subtitle").textContent = [S.subtitle, `計算區間為當日${cutLabel()}至隔日${cutLabel()}`].filter(Boolean).join(" · ");
+  const rules = S.rules.split(/\n/).map(x => x.trim()).filter(Boolean);
+  $("rulesCard").hidden = !rules.length;
+  $("rulesList").innerHTML = rules.map(r => `<li>${esc(r)}</li>`).join("");
+  $("kindClass").textContent = `${S.exName}回報`;
+  $("kindClass").hidden = !S.exName;
+  $("classFromLbl").textContent = `${S.exName}第一天`;
+  $("classToLbl").textContent = `${S.exName}最後一天`;
+  $("memberNames").innerHTML = MODEL.members.map(m => `<option value="${esc(m.name)}">`).join("");
+  const free = SETTINGS.freePerMonth;
+  $("legend").innerHTML = [
+    ["ok", "✓", "已回報"],
+    free ? ["cov", "抵", "缺交，用每月免死次數抵掉"] : null,
+    ["miss", "✗", `缺交（罰 ${S.fine} 元）`],
+    ["late", "遲", `超過隔日${cutLabel()}（視同沒做）`],
+    S.exName ? ["free", "免", `${S.exName}免除`] : null,
+    ["now", "…", "還在計算區間內"],
+    ["nodata", "?", "沒有資料"],
+    ["na", "·", "不計算"],
+  ].filter(Boolean).map(([c, s, t]) => `<span><i class="c ${c}">${s}</i>${t}</span>`).join("");
 }
 
 function render() {
   const ym = $("month").value || MODEL.months[MODEL.months.length - 1];
-  const days = monthDays(ym);
-  const paid = paidMonth();
-  const isPaid = false;   // 不在網站上顯示收款狀態
-  // 退出的人：退出那個月還顯示，下個月起名字就拿掉
-  ROWS = MODEL.members.filter(m => !MODEL.exitedBefore(m, ym + "-01")).map(m => {
-    const t = monthDetail(m, ym);
-    return { m, t };
-  })
-  // 這個月整個月都不計算（還沒加入／已退出）而且沒有金額的人不顯示
-  .filter(r => r.t.owe || r.t.cells.some(c => c.st !== "na"));
-  // 順序固定：照成員名單，新加入的人在最下面（MODEL.members 本來就是這個順序）
+  const days = monthDays(ym), S = SETTINGS;
+  // 退出的人：退出那個月還顯示，下個月起拿掉；整個月都不計算又沒有金額的人不顯示；順序照成員名單
+  ROWS = MODEL.members.filter(m => !MODEL.exitedBefore(m, ym + "-01")).map(m => ({ m, t: monthDetail(m, ym) }))
+    .filter(r => r.t.owe || r.t.cells.some(c => c.st !== "na"));
 
-  const start = normDate(SETTINGS.startDate);
-  const hist = start && monthDays(ym).some(d => d < start);
-  const gap = ROWS.some(r => r.t.nodata);
+  const start = normDate(S.startDate);
   const note = [
-    isPaid ? "✅ 這個月的功德金已經收了。" : "",
-    hist ? `這個月在開始計算日（${start.slice(5).replace("-", "/")}）之前的日子只顯示回報狀況，不計功德金。` : "",
-    gap ? "灰色「?」的日子試算表裡沒有回報資料（可能被刪除），不算缺交。" : "",
+    start && days.some(d => d < start) ? `這個月在開始計算日（${md(start)}）之前的日子只顯示回報狀況，不計${S.fineName}。` : "",
+    ROWS.some(r => r.t.nodata) ? "灰色「?」的日子沒有回報資料（可能被刪除），不算缺交。" : "",
   ].filter(Boolean).join("<br>");
   document.querySelectorAll(".month-note").forEach(el => { el.innerHTML = note; el.hidden = !note; });
 
   const sum = ROWS.reduce((a, r) => a + r.t.owe, 0);
   const perfect = ROWS.filter(r => r.t.miss + r.t.late + r.t.cov === 0).length;
-  const reports = ROWS.reduce((a, r) => a + r.t.ok, 0);
   $("stats").innerHTML = [
-    [isPaid ? "本月功德金合計（已收）" : "本月功德金合計", `$${sum.toLocaleString()}`, !isPaid],
+    [`本月${S.fineName}合計`, `$${sum.toLocaleString()}`, true],
     ["本月全勤人數", `${perfect} / ${ROWS.length}`],
-    ["本月回報篇數", reports],
+    ["本月回報次數", ROWS.reduce((a, r) => a + r.t.ok, 0)],
   ].map(([k, v, money]) => `<div class="stat"><div class="k">${k}</div><div class="v ${money ? "money" : ""}">${v}</div></div>`).join("");
 
-  const free = parseInt(SETTINGS.freePerMonth, 10) || 0;
-  $("legendCov").hidden = !free;
-  $("summaryTable").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th></tr>` +
+  const free = S.freePerMonth;
+  $("summaryTable").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}${S.exName ? `<th class="num">${esc(S.exName)}</th>` : ""}<th class="num">本月${esc(S.fineName)}</th></tr>` +
     ROWS.map(({ m, t }) => {
       const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
       return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll}</td><td class="num">${lateAll}</td>
-      ${free ? `<td class="num">${t.limit ? `${t.cov} / ${t.limit}` : "—"}</td>` : ""}<td class="num">${t.free}</td>
-      <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td></tr>`;
+      ${free ? `<td class="num">${t.limit ? `${t.cov} / ${t.limit}` : "—"}</td>` : ""}${S.exName ? `<td class="num">${t.free}</td>` : ""}
+      <td class="num ${t.owe ? "money" : "zero"}">$${t.owe}</td></tr>`;
     }).join("");
 
-  const wk = "日一二三四五六";
   const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·", nodata: "?" };
-  const tip = { ok: "已回報", miss: "缺交", late: "遲交", cov: "用免死次數抵掉", free: "大堂課免死金牌", now: "計算中", na: "不計算", nodata: "沒有資料" };
-  $("grid").innerHTML = `<tr><th class="name">成員</th>${days.map(d => `<th>${+d.slice(8)}<br><small>${wk[fromKey(d).getDay()]}</small></th>`).join("")}</tr>` +
+  const tip = { ok: "已回報", miss: "缺交", late: "遲交", cov: "用免死次數抵掉", free: `${S.exName}免除`, now: "計算中", na: "不計算", nodata: "沒有資料" };
+  $("grid").innerHTML = `<tr><th class="name">成員</th>${days.map(d => `<th>${+d.slice(8)}<br><small>${wkOf(d)}</small></th>`).join("")}</tr>` +
     ROWS.map(({ m, t }) => `<tr><td class="name">${esc(m.name)}</td>${t.cells.map(c =>
-      `<td><i class="c ${c.st}" title="${c.d.slice(5).replace("-", "/")} ${tip[c.st]}${c.was === "late" ? "（遲交）" : ""}">${sym[c.st]}</i></td>`).join("")}</tr>`).join("");
+      `<td><i class="c ${c.st}" title="${md(c.d)} ${tip[c.st]}${c.was === "late" ? "（遲交）" : ""}">${sym[c.st]}</i></td>`).join("")}</tr>`).join("");
 }
 
 async function load() {
-  $("banner").innerHTML = "";
-  const notes = [];
   try {
-    const [rows, setRows, webRows] = await Promise.all([
-      fetch(CONFIG.history).then(r => r.ok ? r.text() : "").then(parseCSV).catch(() => null),   // 舊 Google 表單的紀錄
-      loadSettingsSource().catch(() => null),
-      loadSheet(CONFIG.settingsSheetUrl, CONFIG.reportTab).catch(() => null),
-    ]);
-    if (!setRows) notes.push("讀不到設定試算表（請確認共用設定是「知道連結的任何人」），目前使用網站內建的預設設定。");
-    SETTINGS = { ...CONFIG, ...(setRows || {}) };
-    // 舊表單紀錄（只算到 formUntil）＋網站回報，同一筆只算一次
-    const main = rows && rows.length > 1 ? toRecords(rows) : { recs: [], headerMembers: [] }, seen = new Set();
-    if (CONFIG.formUntil) main.recs = main.recs.filter(r => r.day <= CONFIG.formUntil);
-    // 網站回報（設定試算表「回報」分頁；分頁不存在時 Google 會回傳別的分頁，靠「狀態」欄判斷）
-    if (webRows && webRows.length > 1 && webRows[0].some(h => /^狀態$/.test(String(h).trim()))) {
-      try { main.recs.push(...toRecords(webRows).recs); } catch (e) {}
-    }
-    if (!main.recs.length) throw new Error("讀不到回報資料。");
-    main.recs = main.recs.filter(r => !seen.has(r.id) && seen.add(r.id));
-    MODEL = build(main, SETTINGS);
+    const res = await fetch(`${API}?g=${encodeURIComponent(G)}&_=${Date.now()}`);
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || "讀不到資料");
+    DATA = d;
+    SETTINGS = readSettings(d);
+    MODEL = build(toRecords(d["回報"] || []), SETTINGS);
   } catch (e) {
-    $("banner").innerHTML = `<div class="banner err">${esc(e.message)}</div>`;
-    return;
+    $("banner").innerHTML = `<div class="banner err">${esc(e.message || "讀不到資料，請檢查網路")}</div>`;
+    return false;
   }
-  if (MODEL.never.length) notes.push(`找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認回報用的名字）`);
-  // 只提醒最近兩個月內自動加入的人
-  const recent = new Date(); recent.setMonth(recent.getMonth() - 1, 1);
-  const autoAdded = MODEL.members.filter(m => m.auto && m.join >= key(recent)).map(m => m.name);
-  if (autoAdded.length) notes.push(`新成員已自動加入：${autoAdded.map(esc).join("、")}（從第一次回報那天開始算）`);
-  if (MODEL.unknown.length) notes.push(`這些名字只回報過一天，可能是打錯字，還沒計入：${MODEL.unknown.map(esc).join("、")}`);
-  if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
+  const notes = [];
+  if (MODEL.never.length) notes.push(`還沒有回報紀錄、也沒填加入日期的成員先不計算：${MODEL.never.map(esc).join("、")}`);
+  $("banner").innerHTML = notes.length ? `<div class="banner info">${notes.join("<br>")}</div>` : "";
 
-  const sel = $("month"), keep = sel.value || new URLSearchParams(location.search).get("month");
+  const sel = $("month"), keep = sel.value || PARAMS.get("month");
   sel.innerHTML = MODEL.months.slice().reverse().map(m => `<option value="${m}">${m.replace("-", " 年 ")} 月</option>`).join("");
   if (MODEL.months.includes(keep)) sel.value = keep;
-  showSettings();
+  renderStatic();
   render();
   showReport();
+  return true;
 }
 
-/* ---------- 每日回報頁（寫進設定試算表「回報」分頁） ---------- */
+/* ---------- 回報專區 ---------- */
 const NEW_NAME = "__new__";
-const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
-const wkOf = d => "日一二三四五六"[fromKey(d).getDay()];
-const nowDay = () => key(new Date(Date.now() - 12 * 3600e3 - GRACE_MS));   // 現在回報算哪一天
-
-function reportMsg(text, cls) { const el = $("reportMsg"); el.className = "hint report-msg " + (cls || ""); el.innerHTML = text; }
-const reportName = () => $("reportName").value === NEW_NAME ? $("reportNew").value.trim() : $("reportName").value;
+let pickedName = "", reportKind = "daily";
+function reportMsg(text, cls) { const el = $("reportMsg"); el.className = "hint msg " + (cls || ""); el.innerHTML = text; }
+const reportName = () => pickedName === NEW_NAME ? $("reportNew").value.trim() : pickedName;
 
 function showReport() {
   const names = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
   // 不記住上一次的名字（大家可能共用同一支手機）；新成員送出後名單會出現他，直接選好
-  const sel = $("reportName"), typed = $("reportNew").value.trim();
-  const keep = sel.value === NEW_NAME && names.includes(typed) ? typed : sel.value;
-  sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("") +
-    `<option value="${NEW_NAME}">我是新成員（自己輸入名字）</option>`;
-  if (names.includes(keep) || keep === NEW_NAME) sel.value = keep;
-  // 名字全部排成按鈕，點一下就選好（下拉選單藏起來，只用來存選到的值）
+  if (pickedName === NEW_NAME && names.includes($("reportNew").value.trim())) pickedName = $("reportNew").value.trim();
+  if (pickedName && pickedName !== NEW_NAME && !names.includes(pickedName)) pickedName = "";
   $("nameButtons").innerHTML = names.map(n => `<button type="button" data-name="${esc(n)}">${esc(n)}</button>`).join("") +
     `<button type="button" class="new" data-name="${NEW_NAME}">＋ 我是新成員</button>`;
   markName();
   updateReport();
 }
 function markName() {
-  $("nameButtons").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.name === $("reportName").value));
+  $("nameButtons").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.name === pickedName));
 }
 $("nameButtons").onclick = e => {
   const b = e.target.closest("button");
   if (!b) return;
-  $("reportName").value = b.dataset.name;
+  pickedName = b.dataset.name;
   markName();
   reportMsg("");
   updateReport();
-  if (b.dataset.name === NEW_NAME) $("reportNew").focus();
+  if (pickedName === NEW_NAME) $("reportNew").focus();
 };
+$("reportNew").oninput = updateReport;
 
-// 回報專區：每日回報／大堂課回報／退出休息
-let reportKind = "daily";
-const KIND_BTN = { daily: "已完成 ✅ 送出回報", class: "送出大堂課回報", pause: "送出" };
 function setKind(k) {
   reportKind = k;
   document.querySelectorAll("[data-kind]").forEach(b => b.setAttribute("aria-selected", b.dataset.kind === k));
   document.querySelectorAll("[data-kind-panel]").forEach(p => p.hidden = p.dataset.kindPanel !== k);
-  $("reportBtn").textContent = KIND_BTN[k];
+  $("reportBtn").textContent = k === "class" ? `送出${SETTINGS.exName || ""}回報` : "已完成 ✅ 送出回報";
   reportMsg("");
   updateReport();
 }
 document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => setKind(b.dataset.kind));
-const pauseKind = () => document.querySelector("[name=pauseKind]:checked").value;
-document.querySelectorAll("[name=pauseKind]").forEach(r => r.onchange = updateReport);
-["classFrom", "classTo", "pauseFrom", "pauseBack"].forEach(id => $(id).onchange = updateReport);
+["classFrom", "classTo"].forEach(id => $(id).onchange = updateReport);
 
 function updateReport() {
-  $("reportNew").hidden = $("reportName").value !== NEW_NAME;
-  const n = reportName();
-  if (reportKind !== "daily") {
+  $("reportNew").hidden = pickedName !== NEW_NAME;
+  const n = reportName(), S = SETTINGS;
+  if (reportKind === "class") {
     $("reportMine").innerHTML = "";
-    $("pauseBackWrap").hidden = pauseKind() === "退出";
     const a = $("classFrom").value, b = $("classTo").value;
     if (a && (!b || b < a)) $("classTo").value = a;
     $("classTo").min = a;
-    $("reportHint").textContent = reportKind === "class"
-      ? (a ? `上課前一天 ${md(addDays(a, -1))} 到最後一天 ${md($("classTo").value)} 都不用寫觀心書` : "填上課第一天和最後一天，前一天也會自動免")
-      : pauseKind() === "退出" ? "退出後就不再計算，下個月名字會從表格拿掉"
-      : "休息期間不計算；回歸日期那天開始恢復計算，沒填就一直不計算";
+    $("reportHint").textContent = a
+      ? `${md(addDays(a, -S.exBefore))} 到 ${md($("classTo").value)} 都不用做${S.task}`
+      : `填${S.exName}第一天和最後一天${S.exBefore ? `，前 ${S.exBefore} 天也會自動免` : ""}`;
     showReportList();
     return;
   }
   $("reportList").hidden = true;
   const d = nowDay();
-  let hint = `這次回報算 ${md(d)}（${wkOf(d)}）的觀心書，${md(addDays(d, 1))} 中午 12:00 前回報`;
+  let hint = `這次回報算 ${md(d)}（${wkOf(d)}）的${S.task}，${md(addDays(d, 1))} ${cutLabel()} 前回報`;
   if (n && MODEL?.byName[n]?.days[d] === "ok") hint = `${n} 已經回報過 ${md(d)}（${wkOf(d)}）了 ✓`;
   $("reportHint").textContent = hint;
   showMine(n);
 }
 
-// 自己最近 7 天的狀況
+// 自己最近 7 天的真實狀況（不顯示免死次數抵掉的「抵」）
 function showMine(n) {
   const m = MODEL && MODEL.members.find(x => x.name === n);
   if (!m) { $("reportMine").innerHTML = ""; return; }
-  const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·", nodata: "?" };
+  const sym = { ok: "✓", miss: "✗", late: "遲", free: "免", now: "…", na: "·", nodata: "?" };
   const days = Array.from({ length: 7 }, (_, i) => addDays(MODEL.current, i - 6));
-  // 顯示真實狀況（缺交就是 ✗、遲交就是「遲」，不顯示免死次數抵掉的「抵」）
-  const cell = d => MODEL.status(m, d);
   $("reportMine").innerHTML = `<p class="hint" style="margin-top:16px">${esc(n)} 最近 7 天</p><div class="mine">` +
-    days.map(d => { const st = cell(d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
+    days.map(d => { const st = MODEL.status(m, d); return `<span><i class="c ${st}">${sym[st] || ""}</i><br>${md(d)}</span>`; }).join("") + "</div>";
 }
 
-$("reportName").onchange = updateReport;
-$("reportNew").oninput = updateReport;
-
-// 大堂課：這個月的所有紀錄；退出／休息：目前還在不計算的人
+// 這個月所有人的免除紀錄
 function showReportList() {
-  const today = nowDay(), ym = today.slice(0, 7), days = monthDays(ym), list = [];
-  let title;
-  if (reportKind === "class") {
-    title = `${+ym.slice(5)} 月大堂課紀錄`;
-    const groups = new Map();
-    for (const [n, a, b] of parseLines(SETTINGS.exemptions)) {
-      const st = normDate(a), en = normDate(b) || st;
-      if (!st || en < days[0] || addDays(st, -1) > days[days.length - 1]) continue;
-      const k = `${st}|${en}`;
-      if (!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(esc(n));
-    }
-    for (const [k, ns] of [...groups].sort()) {
-      const [st, en] = k.split("|");
-      list.push(`<b>${md(st)}～${md(en)} 上課</b><span class="hint">觀心書 ${md(addDays(st, -1))}～${md(en)} 免：</span>${ns.join("、")}`);
-    }
-  } else {
-    title = "目前退出／休息";
-    for (const p of (MODEL?.pauses || []).filter(p => !p.back || p.back > today).sort((a, b) => a.from < b.from ? -1 : 1))
-      list.push(`<b>${esc(p.name)}</b><span class="hint">${md(p.from)} 起不計算${p.back ? `，${md(p.back)} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}</span>`);
+  const ym = nowDay().slice(0, 7), days = monthDays(ym), S = SETTINGS, list = [], groups = new Map();
+  for (const [n, a, b] of parseLines(S.exemptions)) {
+    const st = normDate(a), en = normDate(b) || st;
+    if (!st || en < days[0] || addDays(st, -S.exBefore) > days[days.length - 1]) continue;
+    const k = `${st}|${en}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(esc(n));
+  }
+  for (const [k, ns] of [...groups].sort()) {
+    const [st, en] = k.split("|");
+    list.push(`<b>${md(st)}～${md(en)}</b><span class="hint">${esc(S.task)} ${md(addDays(st, -S.exBefore))}～${md(en)} 免：</span>${ns.join("、")}`);
   }
   $("reportList").hidden = false;
-  $("reportList").innerHTML = `<h2>${title}</h2>` + (list.length ? `<ul class="rlist">${list.map(x => `<li>${x}</li>`).join("")}</ul>` : `<p class="hint">目前沒有</p>`);
+  $("reportList").innerHTML = `<h2>${+ym.slice(5)} 月${esc(S.exName)}紀錄</h2>` +
+    (list.length ? `<ul class="rlist">${list.map(x => `<li>${x}</li>`).join("")}</ul>` : `<p class="hint">目前沒有</p>`);
 }
 
 $("reportForm").onsubmit = async e => {
   e.preventDefault();
-  const name = reportName(), date = nowDay();
+  const name = reportName(), S = SETTINGS;
   if (!name) return reportMsg("請選擇或輸入名字", "err");
   let body, done;
   if (reportKind === "class") {
     const from = $("classFrom").value, to = $("classTo").value || from;
-    if (!from || to < from) return reportMsg("請填大堂課第一天和最後一天", "err");
+    if (!from || to < from) return reportMsg(`請填${S.exName}第一天和最後一天`, "err");
     body = { type: "class", name, from, to };
-    done = `${md(from)}～${md(to)} 大堂課已登記，${md(addDays(from, -1))}～${md(to)} 免寫觀心書`;
-  } else if (reportKind === "pause") {
-    const kind = pauseKind(), from = $("pauseFrom").value, back = kind === "退出" ? "" : $("pauseBack").value;
-    if (!from) return reportMsg("請填從哪天開始不計算", "err");
-    if (back && back <= from) return reportMsg("回歸日期要在開始日之後", "err");
-    if (kind === "退出" && !confirm(`確定 ${name} 從 ${md(from)} 起退出嗎？`)) return;
-    body = { type: "pause", name, kind, from, back, why: $("pauseWhy").value };
-    done = `${kind === "退出" ? "退出" : "休息"}已登記，${md(from)} 起不計算${back ? `，${md(back)} 回歸` : ""}`;
+    done = `${md(from)}～${md(to)} ${S.exName}已登記，${md(addDays(from, -S.exBefore))}～${md(to)} 免做${S.task}`;
   } else {
-    if (!date || date > nowDay()) return reportMsg("請確認日期", "err");
+    const date = nowDay();
     body = { name, date };
     done = `${md(date)}（${wkOf(date)}）已完成`;
   }
-  if (!CONFIG.reportApi) return reportMsg("回報功能還沒設定好，請通知管理員", "err");
   $("reportBtn").disabled = true;
   reportMsg("送出中…");
   try {
-    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify(body) });
+    const res = await fetch(API, { method: "POST", body: JSON.stringify({ g: G, ...body }) });
     const r = await res.json();
     if (!r.ok) throw new Error(r.error || "送出失敗");
     reportMsg(`✅ 收到了！${esc(name)} ${done}`, "ok");
@@ -888,52 +688,293 @@ $("reportForm").onsubmit = async e => {
   }
 };
 
-function showSettings() {
-  // 只列出跟目前選的月份有重疊的大堂課，同一段期間的人合併成一行
-  const ym = $("month").value || MODEL.months[MODEL.months.length - 1];
-  const days = monthDays(ym), groups = new Map();
-  for (const [n, a, b] of parseLines(SETTINGS.exemptions)) {
-    const st = normDate(a), en = normDate(b) || st;
-    if (!st) continue;
-    const from = addDays(st, -1);
-    if (en < days[0] || from > days[days.length - 1]) continue;
-    const k = `${from.slice(5).replace("-", "/")} ~ ${en.slice(5).replace("-", "/")}`;
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(esc(n));
+/* ---------- 管理登入（Email 驗證碼） ---------- */
+const tokKey = () => "tok:" + (OWNER_MODE ? "*" : G);
+let TOKEN = store.get(tokKey()), ME = store.get(tokKey() + ":email");
+let onLogin = () => {};
+
+async function api(body) {
+  const res = await fetch(API, { method: "POST", body: JSON.stringify({ g: G, token: TOKEN, admin: OWNER_MODE, ...body }) });
+  const r = await res.json();
+  if (!r.ok) {
+    if (/登入已過期|不在管理員|沒有這個群組的管理|只有總管理/.test(r.error || "")) logoutLocal();
+    throw new Error(r.error || "失敗");
   }
-  const ex = [...groups].sort().map(([k, ns]) => `${k}：${ns.join("、")}`);
-  // 已經退出的人不列在成員裡（只列在「退出／休息」）
-  const active = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current));
-  $("settingsView").innerHTML = [
-    ["開始計算日", normDate(SETTINGS.startDate) || "—"],
-    ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
-    ["每次罰款", `${+SETTINGS.fine || 50} 元`],
-    ["成員", `${active.length} 人<br>
-      <span class="hint">${active.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
-        ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
-    ["退出／休息", MODEL.pauses.length ? MODEL.pauses.map(p => `${esc(p.name)}：${p.from.slice(5).replace("-", "/")} 起不計算${p.back ? `，${p.back.slice(5).replace("-", "/")} 回歸` : ""}${p.why ? `（${esc(p.why)}）` : ""}`).join("<br>") : "無"],
-    [`${+ym.slice(5)} 月大堂課免死`, ex.length ? ex.join("<br>") : "無"],
-  ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  return r;
+}
+function setMsg(id, text, cls) { const el = $(id); if (el) { el.className = "hint msg " + (cls || ""); el.innerHTML = text; } }
+function logoutLocal() {
+  TOKEN = ""; ME = "";
+  store.set(tokKey(), ""); store.set(tokKey() + ":email", "");
+  showLoginState();
+}
+function showLoginState() {
+  const inn = !!TOKEN;
+  $("loginCard").hidden = inn;
+  if (OWNER_MODE) $("ownerPanel").hidden = !inn; else $("adminPanel").hidden = !inn;
+  if (inn) onLogin();
+}
+$("sendCode").onclick = async () => {
+  const email = $("loginEmail").value.trim();
+  if (!email) return setMsg("loginMsg", "請輸入 Email", "err");
+  $("sendCode").disabled = true;
+  setMsg("loginMsg", "寄送中…");
+  try {
+    await api({ action: "requestCode", email });
+    $("codeStep").hidden = false;
+    $("loginCode").focus();
+    setMsg("loginMsg", "已寄出驗證碼，請到信箱收信（10 分鐘內有效，也看一下垃圾郵件）", "ok");
+  } catch (e) { setMsg("loginMsg", esc(e.message), "err"); }
+  finally { $("sendCode").disabled = false; }
+};
+$("verifyBtn").onclick = async () => {
+  $("verifyBtn").disabled = true;
+  try {
+    const r = await api({ action: "verifyCode", email: $("loginEmail").value.trim(), code: $("loginCode").value.trim() });
+    TOKEN = r.token; ME = r.email;
+    store.set(tokKey(), TOKEN); store.set(tokKey() + ":email", ME);
+    $("loginCode").value = ""; $("codeStep").hidden = true; setMsg("loginMsg", "");
+    showLoginState();
+  } catch (e) { setMsg("loginMsg", esc(e.message), "err"); }
+  finally { $("verifyBtn").disabled = false; }
+};
+$("loginCode").onkeydown = e => { if (e.key === "Enter") $("verifyBtn").click(); };
+
+/* ---------- 管理頁 ---------- */
+let ADMIN = null, adminSec = "settings";
+const SECTIONS = [
+  ["settings", "基本設定"], ["members", "成員"], ["pauses", "退出／休息"], ["ex", "免除"], ["reports", "回報管理"],
+  ["overrides", "手算調整"], ["admins", "管理員"], ["log", "修改紀錄"],
+];
+async function openAdmin() {
+  $("adminEmail").textContent = ME;
+  try { ADMIN = await api({ action: "adminData" }); } catch (e) { $("adminSec").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  showSection(adminSec);
+}
+function showSection(id) {
+  adminSec = id;
+  $("adminChips").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" data-sec="${k}" aria-selected="${k === id}">${k === "ex" ? esc(SETTINGS.exName || "免除") : t}</button>`).join("");
+  ({ settings: secSettings, members: secMembers, pauses: secPauses, ex: secEx, reports: secReports, overrides: secOverrides, admins: secAdmins, log: secLog })[id]();
+}
+$("adminChips").onclick = e => { const b = e.target.closest("[data-sec]"); if (b) showSection(b.dataset.sec); };
+$("logoutBtn").onclick = async () => { try { await api({ action: "logout" }); } catch (e) {} logoutLocal(); };
+
+// 存檔後重新讀資料，畫面維持在同一個區塊
+async function saving(fn, okText) {
+  setMsg("secMsg", "儲存中…");
+  document.querySelectorAll("#adminSec button").forEach(b => b.disabled = true);
+  try {
+    await fn();
+    await load();
+    ADMIN = await api({ action: "adminData" });
+    showSection(adminSec);
+    setMsg("secMsg", "✅ " + (okText || "已儲存"), "ok");
+  } catch (e) {
+    setMsg("secMsg", esc(e.message), "err");
+    document.querySelectorAll("#adminSec button").forEach(b => b.disabled = false);
+  }
 }
 
+function secSettings() {
+  const s = DATA.settings || {};
+  const F = [
+    ["名稱", "網站名稱", "text"], ["副標題", "副標題", "text"],
+    ["任務名稱", "每天要做的事（例如：觀心書）", "text"], ["罰款名稱", "罰款叫什麼（例如：功德金）", "text"],
+    ["開始計算日", "開始計算日", "date"], ["每次罰款", "每次缺交罰多少元", "number"],
+    ["每月免死次數", "每人每月免死次數（0＝沒有）", "number"], ["免死從", "免死次數從哪個月開始（空白＝一開始就有）", "month"],
+    ["切換時間", "每天的切換時間（例如中午 12:00）", "time"], ["免除名稱", "免除的名稱（例如：大堂課；空白＝不用這個功能）", "text"],
+    ["免除提前天數", "免除從第一天的前幾天開始", "number"],
+    ["保留月數", "資料保留幾個月（含這個月；空白＝全部保留，超過的回報會自動刪除）", "number"],
+  ];
+  const val = (k, t) => t === "date" ? normDate(s[k]) : t === "month" ? normMonth(s[k]) : (s[k] || "");
+  $("adminSec").innerHTML = `<h2>基本設定</h2><div class="form-grid">` +
+    F.map(([k, l, t]) => `<div class="field"><label>${l}</label><input data-k="${k}" type="${t}" value="${esc(val(k, t))}"></div>`).join("") +
+    `<div class="field wide"><label>規則說明（一行一條，會顯示在「回報紀錄」上面）</label><textarea data-k="規則說明">${esc(s["規則說明"] || "")}</textarea></div></div>
+    <div class="edit-actions"><button type="button" id="saveSettings">儲存</button></div><p class="hint msg" id="secMsg"></p>`;
+  $("saveSettings").onclick = () => {
+    const settings = {};
+    $("adminSec").querySelectorAll("[data-k]").forEach(el => { settings[el.dataset.k] = el.value.trim(); });
+    saving(() => api({ action: "saveSettings", settings }));
+  };
+}
+
+// 通用表格編輯：一列一筆，可以新增、刪除、排序，按儲存整份寫回去
+function editor({ title, hint, tab, cols, rows, newRow, reorder }) {
+  const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
+  $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
+    <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>
+    <div class="edit-actions"><button type="button" class="ghost" data-act="add">＋ 新增一列</button><button type="button" data-act="save">儲存</button></div>
+    <p class="hint msg" id="secMsg"></p>`;
+  const tb = $("adminSec").querySelector("tbody");
+  const addRow = r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = cols.map((c, i) => `<td><input type="${c.type || "text"}" value="${esc(fmt(c, r[i]))}" ${c.list ? `list="${c.list}"` : ""} placeholder="${esc(c.ph || "")}"></td>`).join("") +
+      `<td class="row-act">${reorder ? `<button type="button" class="ghost sm" data-act="up" title="上移">↑</button> <button type="button" class="ghost sm" data-act="down" title="下移">↓</button> ` : ""}<button type="button" class="ghost sm" data-act="del" title="刪除">✕</button></td>`;
+    tb.appendChild(tr);
+    return tr;
+  };
+  (rows || []).forEach(addRow);
+  $("adminSec").onclick = e => {
+    const b = e.target.closest("button[data-act]");
+    if (!b) return;
+    const tr = b.closest("tr"), act = b.dataset.act;
+    if (act === "add") addRow(newRow ? newRow() : []).querySelector("input").focus();
+    else if (act === "del") tr.remove();
+    else if (act === "up" && tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
+    else if (act === "down" && tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
+    else if (act === "save") {
+      const data = [...tb.rows].map(r => [...r.querySelectorAll("input")].map(i => i.value.trim())).filter(r => r[0]);
+      saving(() => api({ action: "saveTab", tab, rows: data }));
+    }
+  };
+}
+const nameCol = { label: "名字", list: "memberNames" };
+function secMembers() {
+  editor({ title: "成員", tab: "成員", reorder: true, rows: DATA["成員"], newRow: () => ["", nowDay(), ""],
+    hint: "順序就是表格裡的順序。加入日期空白＝從第一次回報那天開始算。要退出或休息請用「退出／休息」。",
+    cols: [{ label: "名字" }, { label: "加入日期", type: "date" }, { label: "結束日期", type: "date" }] });
+}
+function secPauses() {
+  editor({ title: "退出／休息", tab: "退出休息", rows: DATA["退出休息"], newRow: () => ["", nowDay(), "", ""],
+    hint: "從「不計算開始日」起不計算；寫了回歸日期，那天起恢復計算。沒寫回歸日期＝退出（下個月名字會從表格拿掉）。",
+    cols: [nameCol, { label: "不計算開始日", type: "date" }, { label: "回歸日期", type: "date" }, { label: "原因", ph: "例如：出國" }] });
+}
+function secEx() {
+  const n = SETTINGS.exName || "免除";
+  editor({ title: n, tab: "免除", rows: DATA["免除"], newRow: () => ["", "", ""],
+    hint: `${n}期間不用做${esc(SETTINGS.task)}${SETTINGS.exBefore ? `（從第一天的前 ${SETTINGS.exBefore} 天開始）` : ""}。名字寫「全部」＝所有人。成員自己也可以在回報專區登記。`,
+    cols: [{ ...nameCol, ph: "名字或「全部」" }, { label: "第一天", type: "date" }, { label: "最後一天", type: "date" }] });
+}
+function secOverrides() {
+  editor({ title: "手算調整", tab: "手算調整", rows: DATA["手算調整"], newRow: () => ["", nowDay().slice(0, 7), ""],
+    hint: `某人某個月的${esc(SETTINGS.fineName)}直接用這裡的金額（例如以前手算過的月份）。`,
+    cols: [nameCol, { label: "月份", type: "month" }, { label: "金額", type: "number" }] });
+}
+function secAdmins() {
+  editor({ title: "管理員", tab: "管理員", rows: (ADMIN.admins || []).map(a => [a]), newRow: () => [""],
+    hint: "這些 Email 可以收驗證碼登入管理頁。拿掉某人之後，他就不能再修改。",
+    cols: [{ label: "Email", type: "email", ph: "name@gmail.com" }] });
+}
+function secLog() {
+  const log = ADMIN.log || [];
+  $("adminSec").innerHTML = `<h2>修改紀錄</h2><p class="hint" style="margin-bottom:10px">最近 200 筆，只有管理員看得到。</p>` +
+    (log.length ? `<div class="scroll"><table><tr><th>時間</th><th>誰</th><th>動作</th><th>內容</th></tr>${log.map(r =>
+      `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td style="white-space:normal">${esc(r[3])}</td></tr>`).join("")}</table></div>` : `<p class="hint">還沒有紀錄</p>`);
+}
+
+// 回報管理：選一個人看這個月的回報，可以刪除；也可以補登
+let admPick = "";
+function secReports() {
+  const ym = $("month").value, names = MODEL.members.map(m => m.name);
+  $("adminSec").innerHTML = `<h2>回報管理（${ym.replace("-", " 年 ")} 月）</h2>
+    <p class="hint" style="margin-bottom:10px">選一個人，看他這個月的每一筆回報，可以刪掉打錯的。要看別的月份，改上面的「月份」。</p>
+    <div class="names" id="admNames">${names.map(n => `<button type="button" data-name="${esc(n)}" aria-pressed="${n === admPick}">${esc(n)}</button>`).join("")}</div>
+    <div id="admList" style="margin-top:12px"></div>
+    <h2 style="margin-top:22px">補登回報</h2>
+    <p class="hint" style="margin-bottom:6px">補登的不算遲交。</p>
+    <div class="row2"><div><label class="lbl">名字</label><input id="addName" list="memberNames" value="${esc(admPick)}"></div>
+    <div><label class="lbl">日期</label><input type="date" id="addDate" max="${nowDay()}"></div></div>
+    <div class="edit-actions"><button type="button" id="addBtn">補登</button></div>
+    <p class="hint msg" id="secMsg"></p>`;
+  const listFor = n => {
+    const rows = (DATA["回報"] || []).filter(r => String(r[1]).replace(/\s*[（(].*$/, "").trim() === n).map(r => {
+      const ts = parseDateTime(r[0]);
+      return { r, day: normDate(r[2]) || (ts ? dayOf(ts.getTime()) : "") };
+    }).filter(x => x.day.slice(0, 7) === ym).sort((a, b) => a.day < b.day ? -1 : 1);
+    $("admList").innerHTML = rows.length ? `<div class="scroll"><table class="edit"><tr><th>算哪一天</th><th>送出時間</th><th>備註</th><th></th></tr>${rows.map(({ r, day }) =>
+      `<tr><td>${md(day)}（${wkOf(day)}）</td><td>${esc(r[0])}</td><td>${esc(r[3] || (r[1] !== n ? r[1] : ""))}</td>
+       <td><button type="button" class="ghost sm" data-del='${esc(JSON.stringify([r[0], r[1], r[2]]))}'>刪除</button></td></tr>`).join("")}</table></div>`
+      : `<p class="hint">${esc(n)} 這個月沒有回報紀錄</p>`;
+  };
+  if (admPick) listFor(admPick);
+  $("admNames").onclick = e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    admPick = b.dataset.name;
+    $("admNames").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    $("addName").value = admPick;
+    listFor(admPick);
+  };
+  $("admList").onclick = e => {
+    const b = e.target.closest("[data-del]");
+    if (!b) return;
+    const [ts, name, date] = JSON.parse(b.dataset.del);
+    if (!confirm(`確定刪除 ${name} ${ts} 這筆回報？`)) return;
+    saving(() => api({ action: "deleteReport", ts, name, date }), "已刪除");
+  };
+  $("addBtn").onclick = () => {
+    const name = $("addName").value.trim(), date = $("addDate").value;
+    if (!name || !date) return setMsg("secMsg", "請填名字和日期", "err");
+    saving(() => api({ action: "addReport", name, date }), `已補登 ${name} ${md(date)}`);
+  };
+}
+
+/* ---------- 總管理 ---------- */
+async function openOwner() {
+  $("ownerEmail").textContent = ME;
+  try {
+    const r = await api({ action: "listGroups" });
+    $("groupList").innerHTML = r.groups.length ? r.groups.map(g => `<div class="gitem"><b>${esc(g.name)}</b>
+      <span class="hint">（代碼 ${esc(g.id)}，${esc(g.created)} 建立）</span>
+      <div class="copy"><input readonly value="${esc(g.url)}"><button type="button" class="ghost sm" data-copy="${esc(g.url)}">複製</button></div>
+      <p class="hint"><a href="${esc(g.url)}" target="_blank" rel="noopener">開啟網站</a> · <a href="${esc(g.sheet)}" target="_blank" rel="noopener">資料試算表</a></p></div>`).join("")
+      : `<p class="hint">還沒有群組</p>`;
+  } catch (e) { $("groupList").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; }
+}
+$("groupList").onclick = e => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  navigator.clipboard?.writeText(b.dataset.copy).then(() => { b.textContent = "已複製"; setTimeout(() => b.textContent = "複製", 1500); });
+};
+$("createBtn").onclick = async () => {
+  const name = $("newName").value.trim(), admins = $("newAdmins").value.trim();
+  if (!name || !admins) return setMsg("createMsg", "請填群組名稱和負責人 Email", "err");
+  $("createBtn").disabled = true;
+  setMsg("createMsg", "建立中…（大約 10 秒）");
+  try {
+    const r = await api({ action: "createGroup", name, admins });
+    setMsg("createMsg", `✅ 建立好了！網址：<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a><br>把網址給負責人，他用自己的 Email 登入「管理」頁就能設定成員和規則。`, "ok");
+    $("newName").value = ""; $("newAdmins").value = "";
+    openOwner();
+  } catch (e) { setMsg("createMsg", esc(e.message), "err"); }
+  finally { $("createBtn").disabled = false; }
+};
+$("ownerLogout").onclick = async () => { try { await api({ action: "logout" }); } catch (e) {} logoutLocal(); };
+
+/* ---------- 分頁 ---------- */
 function showTab(name) {
   if (!document.querySelector(`[data-panel="${name}"]`)) name = "report";
   document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== name);
   document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
   document.body.classList.toggle("on-report", name === "report");
+  if (name === "admin") {
+    document.querySelector('[data-panel="admin"]').prepend($("loginCard"));
+    showLoginState();
+  }
 }
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
 window.onhashchange = () => showTab(location.hash.slice(1));
-// 舊的 report.html 連結（?p=report）也直接打開回報專區
-showTab(new URLSearchParams(location.search).get("p") || location.hash.slice(1));
-
-$("settingsLink").href = CONFIG.settingsSheetUrl;
-// 每日回報不用選日期：中午 12 點前回報算前一天，12 點後算當天；網頁一直開著跨過中午，回到網頁時提示會更新
-setKind("daily");
+$("month").onchange = () => { render(); if (TOKEN && adminSec === "reports" && !$("adminPanel").hidden) showSection("reports"); };
 document.addEventListener("visibilitychange", () => { if (!document.hidden && MODEL) updateReport(); });
-$("month").onchange = () => { render(); showSettings(); };
 
-load();
+/* ---------- 開始 ---------- */
+if (OWNER_MODE) {
+  document.title = "打卡網站總管理";
+  $("title").textContent = "打卡網站總管理";
+  $("subtitle").textContent = "建立新群組、查看所有群組的網址";
+  $("ownerView").hidden = false;
+  $("ownerView").prepend($("loginCard"));
+  onLogin = openOwner;
+  showLoginState();
+} else if (!G) {
+  $("subtitle").textContent = "請使用群組的專屬網址打開（網址後面會有 ?g=群組代碼）。";
+} else {
+  $("groupView").hidden = false;
+  onLogin = openAdmin;
+  setKind("daily");
+  showTab(location.hash.slice(1));
+  load().then(ok => { if (ok) setKind(reportKind); });
+}
 
 // 瀏覽器會把網頁暫存最多 10 分鐘：打開時比對最新版，有更新就自動重新載入（每個版本只試一次）
 (async () => {
