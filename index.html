@@ -788,7 +788,7 @@ async function saving(fn, okText) {
 }
 
 function secSettings() {
-  const s = DATA.settings || {}, ex = SETTINGS.exName || "免除";
+  const s = DATA.settings || {};
   // [項目, 標題, 輸入類型, 小字說明]
   const GROUPS = [
     ["網站", [
@@ -804,8 +804,8 @@ function secSettings() {
       ["每月免死次數", "每人每月免死次數", "number", "0＝沒有免死"],
       ["免死從", "免死次數從哪個月開始", "month", "空白＝一開始就有"],
     ]],
-    [ex, [
-      ["免除名稱", "名稱", "text", "例如：大堂課；空白＝不用這個功能"],
+    ["免回報方式", [
+      ["免除名稱", "名稱", "text", "例如：大堂課、請假；空白＝不用這個功能"],
       ["免除提前天數", "提前幾天開始免", "number", "例如 1＝上課前一天也免"],
     ]],
     ["資料保留", [
