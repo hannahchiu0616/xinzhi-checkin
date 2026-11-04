@@ -253,12 +253,12 @@ button.sm{padding:4px 9px;font-size:.85rem}
       </div>
       <div class="card">
         <h2>建立新群組</h2>
+        <button type="button" id="createBtn">建立群組</button>
+        <p class="hint msg" id="createMsg"></p>
         <div class="form-grid">
           <div class="field"><label for="newName">群組名稱</label><input id="newName" placeholder="例如：讀書會打卡"></div>
           <div class="field"><label for="newAdmins">負責人 Email（可以多個，用逗號分開）</label><input id="newAdmins" placeholder="a@gmail.com, b@gmail.com"></div>
         </div>
-        <button type="button" id="createBtn" style="margin-top:14px">建立群組</button>
-        <p class="hint msg" id="createMsg"></p>
       </div>
       <div class="card">
         <h2>所有群組</h2>
@@ -858,7 +858,7 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, gro
     if (act === "add") {
       const nr = addRow(newRow ? newRow() : [], true);
       nr.classList.add("editing");
-      if (groupBy) tb.prepend(nr);   // 分組的表格：新的一列放最上面
+      tb.prepend(nr);   // 新的一列放最上面（按鈕下面）
       nr.scrollIntoView({ block: "center", behavior: "smooth" });
       nr.querySelector("input").focus({ preventScroll: true });
     }
@@ -886,10 +886,11 @@ function secMembers() {
   editor({ title: "成員", tab: "成員", rows: old.filter(r => !seen.has(r[0]) && seen.add(r[0])).map(r => [r[0]]), newRow: () => [""],
     hint: "新增的人從今天開始算，排在最下面。要退出或休息請用「退出／休息」。",
     cols: [{ label: "名字" }],
-    beforeSave: names => names.flatMap(([n]) => {
-      const keep = old.filter(r => r[0] === n);
-      return keep.length ? keep : [[n, nowDay(), ""]];
-    }) });
+    // 新加的人（畫面上在最上面）存檔時排到名單最後
+    beforeSave: names => {
+      const had = names.filter(([n]) => old.some(r => r[0] === n)), added = names.filter(([n]) => !old.some(r => r[0] === n));
+      return had.flatMap(([n]) => old.filter(r => r[0] === n)).concat(added.map(([n]) => [n, nowDay(), ""]));
+    } });
 }
 function secPauses() {
   editor({ title: "退出／休息", tab: "退出休息", rows: DATA["退出休息"], newRow: () => ["", nowDay(), "", ""],
