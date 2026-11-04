@@ -633,7 +633,6 @@ function showSettings() {
     ["每人每月免死次數", `${parseInt(SETTINGS.freePerMonth, 10) || 0} 次`],
     ["每次罰款", `${+SETTINGS.fine || 50} 元`],
     ["已收款至", paidMonth() ? paidMonth().replace("-", " 年 ") + " 月" : "—"],
-    ["手算調整", parseLines(SETTINGS.overrides).map(([n, mo, a]) => `${esc(n)} ${esc(mo)}：$${esc(a)}`).join("<br>") || "無"],
     ["成員", `${MODEL.members.length} 人<br>
       <span class="hint">${MODEL.members.map(m => esc(m.name) + (m.periods.length > 1 || m.periods[0].to
         ? `（${m.periods.map(p => `${p.from.slice(5).replace("-", "/")}~${p.to ? p.to.slice(5).replace("-", "/") : ""}`).join("、")}）` : "")).join("、")}</span>`],
