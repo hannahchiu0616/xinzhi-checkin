@@ -908,7 +908,6 @@ $("settingsLink").href = CONFIG.settingsSheetUrl;
 // 每日回報不用選日期：中午 12 點前回報算前一天，12 點後算當天；網頁一直開著跨過中午，回到網頁時提示會更新
 setKind("daily");
 document.addEventListener("visibilitychange", () => { if (!document.hidden && MODEL) updateReport(); });
-});
 $("month").onchange = () => { render(); showSettings(); };
 
 load();
