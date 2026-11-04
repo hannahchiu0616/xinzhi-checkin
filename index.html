@@ -922,6 +922,22 @@ document.addEventListener("visibilitychange", () => {
 $("month").onchange = () => { render(); showSettings(); };
 
 load();
+
+// 瀏覽器會把網頁暫存最多 10 分鐘：打開時比對最新版，有更新就自動重新載入（每個版本只試一次）
+(async () => {
+  try {
+    const url = location.pathname;
+    const [cached, fresh] = await Promise.all([
+      fetch(url, { cache: "force-cache" }).then(r => r.text()),
+      fetch(url, { cache: "reload" }).then(r => r.text()),
+    ]);
+    if (cached === fresh) return;
+    const mark = String(fresh.length);
+    if (sessionStorage.getItem("reloadedFor") === mark) return;
+    sessionStorage.setItem("reloadedFor", mark);
+    location.reload();
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
