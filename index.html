@@ -198,12 +198,12 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <div class="links">
       <a class="link-card" id="settingsLink" target="_blank" rel="noopener">
         <span class="lc-title">設定試算表</span>
-        <span class="hint">退出／休息、大堂課免死、罰款規則。改完回網站按「重新整理」</span>
+        <span class="hint">退出／休息、大堂課免死、罰款規則，「回報」分頁是大家在網站的回報紀錄。改完回網站按「重新整理」</span>
         <span class="lc-go">開啟 →</span>
       </a>
-      <a class="link-card" id="responsesLink" target="_blank" rel="noopener">
-        <span class="lc-title">回報試算表</span>
-        <span class="hint">大家填表單的原始資料，只能看</span>
+      <a class="link-card" href="report.html">
+        <span class="lc-title">每日回報頁</span>
+        <span class="hint">把這個連結發給大家，寫完觀心書在這裡回報</span>
         <span class="lc-go">開啟 →</span>
       </a>
     </div>
@@ -212,8 +212,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>編輯者：怎麼修改</h2>
     <ol class="rules">
-      <li><b>新人</b>：不用手動加。只要他填了表單，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
-      <li><b>退出／休息</b>：在「成員」分頁加一列：名字、不計算開始日、回歸日期、原因。沒寫回歸日期＝一直不計算。名字要和填表單的一模一樣。</li>
+      <li><b>新人</b>：不用手動加。新人在回報頁選「我是新成員」輸入名字，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
+      <li><b>退出／休息</b>：在「成員」分頁加一列：名字、不計算開始日、回歸日期、原因。沒寫回歸日期＝一直不計算。名字要和回報用的一模一樣。</li>
       <li><b>大堂課免死</b>：在「大堂課免死」分頁加一列：名字、大堂課第一天、最後一天。全部人都去就寫「全部」。</li>
       <li><b>罰款、每月免死次數</b>：在「規則」分頁改第 2 列。</li>
     </ol>
@@ -224,14 +224,12 @@ h2{font-size:1.1rem;margin:0 0 12px}
 <script>
 /* ===== 資料來源與預設值（試算表「網站設定」分頁的內容會蓋過這裡） ===== */
 const CONFIG = {
-  sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
-  settingsTab: "網站設定",
-  settingsSheetUrl: "https://docs.google.com/spreadsheets/d/1EIGk9C9_UwtMlHjbn-pUjHjzK3SwNOu6RI76Hi1v3eQ/edit",        // 另外一份設定試算表（有填就從這裡讀設定）
+  history: "history.csv",      // 舊 Google 表單的回報紀錄（11/4 存下來的備份）
+  formUntil: "2026-11-03",     // 舊表單的資料只算到這一天，之後改用網站回報
+  settingsSheetUrl: "https://docs.google.com/spreadsheets/d/1EIGk9C9_UwtMlHjbn-pUjHjzK3SwNOu6RI76Hi1v3eQ/edit",
   settingsTabs: ["規則", "成員", "大堂課免死", "手算調整"],
-  archiveGids: [],             // 舊回覆分頁（不再使用）
   reportTab: "回報",           // 網站回報寫在設定試算表的這個分頁
   reportApi: "",               // Apps Script 網頁應用程式網址（apps-script.gs 部署後貼上）
-  formUntil: "2026-11-03",     // 舊 Google 表單的資料只算到這一天，之後改用網站回報
   startDate: "2026-06-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
@@ -314,21 +312,6 @@ const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); re
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /* ---------- 讀取試算表 ---------- */
-// 主要用 CSV 匯出（會包含被隱藏的列）；讀不到時改用 gviz（會略過隱藏列）
-async function loadRows(url) {
-  const id = (url.match(/\/spreadsheets\/d\/([\w-]+)/) || [])[1];
-  const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1] || "0";
-  try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`);
-    if (!res.ok) throw new Error(res.status);
-    const text = await res.text();
-    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error("not csv");
-    return parseCSV(text);
-  } catch (e) {
-    return loadSheet(url);
-  }
-}
-
 function parseCSV(text) {
   const rows = []; let row = [], f = "", q = false;
   for (let i = 0; i < text.length; i++) {
@@ -414,13 +397,9 @@ function readSettingsTab(rows) {
   return s;
 }
 
-// 設定來源：有另外的設定試算表就讀它的 4 個分頁（規則／成員／大堂課免死／手算調整），
-// 沒有就讀回報試算表裡的「網站設定」分頁。回傳合併後的設定，找不到任何設定時回傳 null
+// 設定來源：設定試算表的 4 個分頁（規則／成員／大堂課免死／手算調整）
+// 回傳合併後的設定，找不到任何設定時回傳 null
 async function loadSettingsSource() {
-  if (!CONFIG.settingsSheetUrl) {
-    const rows = await loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab);
-    return readSettingsTab(rows);
-  }
   const tabs = await Promise.all(CONFIG.settingsTabs.map(t => loadSheet(CONFIG.settingsSheetUrl, t).catch(() => null)));
   const merged = {};
   for (const rows of tabs) if (rows) Object.assign(merged, readSettingsTab(rows) || {});
@@ -453,7 +432,7 @@ function toRecords(rows) {
   const tCol = Math.max(0, header.findIndex(h => /時間戳記|timestamp/i.test(h)));
   const nCol = header.findIndex((h, i) => i !== tCol && /^(姓名|名字|稱呼|名稱|name)$/i.test(h));
   const dCol = header.findIndex(h => /^(回報|觀心書|統計)?日期$/.test(h));
-  if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認選到的是表單回應分頁。");
+  if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認資料格式。");
   const headerMembers = header.map(h => (h.match(/^(.+?)\s*[（(]免死[)）]$/) || [])[1]).filter(Boolean);
 
   const recs = [];
@@ -519,23 +498,8 @@ function build({ recs, headerMembers }, s) {
   // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
   const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
   for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
-  // Google 表單「姓名」選項的變動（GitHub 每小時記錄一次，存在 form-members.json）
-  // 開始記錄之後才加進選項的人 → 從加進那天開始算；被拿掉的人 → 拿掉前一天是最後一天
-  const fdb = s.formDb;
-  if (fdb && fdb.members) for (const [n, ps] of Object.entries(fdb.members)) {
-    const m = members.find(x => x.name === n);
-    const added = ps.filter(p => p.from > fdb.baseline).map(p => ({ from: p.from, to: p.to || "" }));
-    if (!m) {
-      if (added.length) members.push({ name: n, periods: added, auto: true });
-      continue;
-    }
-    const removed = ps.find(p => p.from <= fdb.baseline && p.to);
-    const last = m.periods[m.periods.length - 1];
-    if (removed && !last.to) last.to = removed.to;
-    m.periods.push(...added);
-  }
 
-  // 表單出現新名字 → 自動加成成員，從第一次回報那天開始算
+  // 回報出現新名字 → 自動加成成員，從第一次回報那天開始算
   const listed = new Set(members.map(m => m.name));
   for (const n of Object.keys(byName)) {
     if (listed.has(n)) continue;
@@ -697,30 +661,21 @@ async function load() {
   $("reload").disabled = true;
   const notes = [];
   try {
-    const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
-    const [rows, setRows, formDb, webRows, ...archives] = await Promise.all([
-      loadRows(CONFIG.sheetUrl).catch(() => null),   // 舊的 Google 表單回覆（歷史資料）
+    const [rows, setRows, webRows] = await Promise.all([
+      fetch(CONFIG.history).then(r => r.ok ? r.text() : "").then(parseCSV).catch(() => null),   // 舊 Google 表單的紀錄
       loadSettingsSource().catch(() => null),
-      fetch("form-members.json?_=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
-      CONFIG.settingsSheetUrl ? loadSheet(CONFIG.settingsSheetUrl, CONFIG.reportTab).catch(() => null) : null,
-      ...archiveUrls.map(u => loadRows(u).catch(() => null)),
+      loadSheet(CONFIG.settingsSheetUrl, CONFIG.reportTab).catch(() => null),
     ]);
-    const fromSheet = setRows;
-    if (!fromSheet) notes.push(CONFIG.settingsSheetUrl
-      ? "讀不到設定試算表（請確認共用設定是「知道連結的任何人」），目前使用網站內建的預設設定。"
-      : `試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
-    SETTINGS = { ...CONFIG, ...(fromSheet || {}), formDb };
-    if ((!rows || rows.length < 2) && !(webRows && webRows.length > 1)) throw new Error("試算表沒有資料。");
-    // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
+    if (!setRows) notes.push("讀不到設定試算表（請確認共用設定是「知道連結的任何人」），目前使用網站內建的預設設定。");
+    SETTINGS = { ...CONFIG, ...(setRows || {}) };
+    // 舊表單紀錄（只算到 formUntil）＋網站回報，同一筆只算一次
     const main = rows && rows.length > 1 ? toRecords(rows) : { recs: [], headerMembers: [] }, seen = new Set();
     if (CONFIG.formUntil) main.recs = main.recs.filter(r => r.day <= CONFIG.formUntil);
     // 網站回報（設定試算表「回報」分頁；分頁不存在時 Google 會回傳別的分頁，靠「狀態」欄判斷）
     if (webRows && webRows.length > 1 && webRows[0].some(h => /^狀態$/.test(String(h).trim()))) {
       try { main.recs.push(...toRecords(webRows).recs); } catch (e) {}
     }
-    for (const a of archives) if (a && a.length > 1) {
-      try { main.recs.push(...toRecords(a).recs); } catch (e) {}
-    }
+    if (!main.recs.length) throw new Error("讀不到回報資料。");
     main.recs = main.recs.filter(r => !seen.has(r.id) && seen.add(r.id));
     MODEL = build(main, SETTINGS);
   } catch (e) {
@@ -729,7 +684,7 @@ async function load() {
   } finally {
     $("reload").disabled = false;
   }
-  if (MODEL.never.length) notes.push(`表單裡找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認填表單用的名字）`);
+  if (MODEL.never.length) notes.push(`找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認回報用的名字）`);
   // 只提醒最近兩個月內自動加入的人
   const recent = new Date(); recent.setMonth(recent.getMonth() - 1, 1);
   const autoAdded = MODEL.members.filter(m => m.auto && m.join >= key(recent)).map(m => m.name);
@@ -864,8 +819,7 @@ if (REPORT_ONLY) {
   document.title = "心之使者每日回報";
 } else showTab(location.hash.slice(1));
 
-$("settingsLink").href = CONFIG.settingsSheetUrl || CONFIG.sheetUrl;
-$("responsesLink").href = CONFIG.sheetUrl;
+$("settingsLink").href = CONFIG.settingsSheetUrl;
 $("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
