@@ -116,6 +116,26 @@ details summary{cursor:pointer;font-weight:600}
 .rules{font-size:.9rem;color:var(--muted);margin:0;padding-left:20px}
 h2{font-size:1.1rem;margin:0 0 12px}
 .row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+/* 手機：表格自己捲動，日期列固定在上面、名字欄固定在左邊 */
+@media (max-width: 700px){
+  .wrap{padding:16px 10px 40px}
+  h1{font-size:1.3rem}
+  .sub{font-size:.82rem;margin-bottom:12px}
+  .card{padding:12px;border-radius:12px}
+  .tabs button{padding:10px 4px;font-size:.92rem}
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{padding:10px}
+  .stat .v{font-size:1.15rem}
+  .stat .k{font-size:.72rem}
+  .scroll.tall{max-height:72vh;overflow:auto;margin:0 -12px;padding:0 12px 0 0}
+  .scroll.tall tr:first-child th{position:sticky;top:0;background:var(--card);z-index:2}
+  .scroll.tall tr:first-child th:first-child{left:0;z-index:3}
+  #summary td:first-child,#summary th:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+  #summary th,#summary td{padding:7px 8px}
+  .grid th.name,.grid td.name{padding-left:12px}
+  .grid th{font-size:.75rem;line-height:1.2}
+  .c{width:24px;height:24px;line-height:24px;font-size:.72rem}
+}
 </style>
 </head>
 <body>
@@ -147,7 +167,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card" style="margin-top:16px">
     <h2>本月結算</h2>
     <p class="hint month-note" hidden></p>
-    <div class="scroll"><table id="summary"></table></div>
+    <div class="scroll tall"><table id="summary"></table></div>
   </div>
   </section>
 
@@ -214,7 +234,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>回報紀錄</h2>
     <p class="hint month-note" hidden></p>
-    <div class="scroll"><table class="grid" id="grid"></table></div>
+    <div class="scroll tall"><table class="grid" id="grid"></table></div>
     <div class="legend">
       <span><i class="c ok">✓</i>已回報</span>
       <span id="legendCov"><i class="c cov">抵</i>缺交，用每月免死次數抵掉</span>
