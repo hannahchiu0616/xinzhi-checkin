@@ -881,29 +881,46 @@ function secLog() {
       `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td style="white-space:normal">${esc(r[3])}</td></tr>`).join("")}</table></div>` : `<p class="hint">還沒有紀錄</p>`);
 }
 
-// 回報管理：選一個人看這個月的回報，可以刪除；也可以補登
+// 回報管理：選一個人，看他這個月每一天的打卡明細（越近的越上面），可以刪除或補登
 let admPick = "";
 function secReports() {
   const ym = $("month").value, names = MODEL.members.map(m => m.name);
-  $("adminSec").innerHTML = `<h2>回報管理（${ym.replace("-", " 年 ")} 月）</h2>
-    <p class="hint" style="margin-bottom:10px">選一個人，看他這個月的每一筆回報，可以刪掉打錯的。要看別的月份，改上面的「月份」。</p>
+  $("adminSec").innerHTML = `<h2>每個人的打卡紀錄（${ym.replace("-", " 年 ")} 月）</h2>
+    <p class="hint" style="margin-bottom:10px">選一個人看他每一天的狀況。打錯的回報可以刪除，缺交的日子可以補登（補登不算遲交）。要看別的月份，改上面的「月份」。</p>
     <div class="names" id="admNames">${names.map(n => `<button type="button" data-name="${esc(n)}" aria-pressed="${n === admPick}">${esc(n)}</button>`).join("")}</div>
-    <div id="admList" style="margin-top:12px"></div>
-    <h2 style="margin-top:22px">補登回報</h2>
-    <p class="hint" style="margin-bottom:6px">補登的不算遲交。</p>
-    <div class="row2"><div><label class="lbl">名字</label><input id="addName" list="memberNames" value="${esc(admPick)}"></div>
-    <div><label class="lbl">日期</label><input type="date" id="addDate" max="${nowDay()}"></div></div>
-    <div class="edit-actions"><button type="button" id="addBtn">補登</button></div>
+    <div id="admList" style="margin-top:14px"></div>
     <p class="hint msg" id="secMsg"></p>`;
+  const S = SETTINGS;
+  const label = { ok: "✓ 已回報", miss: "✗ 缺交", late: "遲 遲交", free: `免 ${S.exName}`, now: "… 計算中", na: "· 不計算", nodata: "? 沒有資料" };
   const listFor = n => {
-    const rows = (DATA["回報"] || []).filter(r => String(r[1]).replace(/\s*[（(].*$/, "").trim() === n).map(r => {
+    const m = MODEL.members.find(x => x.name === n);
+    if (!m) { $("admList").innerHTML = ""; return; }
+    const t = monthDetail(m, ym);
+    // 這個人這個月的每一筆回報，依「算哪一天」分好
+    const byDay = {};
+    for (const r of DATA["回報"] || []) {
+      if (String(r[1]).replace(/\s*[（(].*$/, "").trim() !== n) continue;
       const ts = parseDateTime(r[0]);
-      return { r, day: normDate(r[2]) || (ts ? dayOf(ts.getTime()) : "") };
-    }).filter(x => x.day.slice(0, 7) === ym).sort((a, b) => a.day < b.day ? -1 : 1);
-    $("admList").innerHTML = rows.length ? `<div class="scroll"><table class="edit"><tr><th>算哪一天</th><th>送出時間</th><th>備註</th><th></th></tr>${rows.map(({ r, day }) =>
-      `<tr><td>${md(day)}（${wkOf(day)}）</td><td>${esc(r[0])}</td><td>${esc(r[3] || (r[1] !== n ? r[1] : ""))}</td>
-       <td><button type="button" class="ghost sm" data-del='${esc(JSON.stringify([r[0], r[1], r[2]]))}'>刪除</button></td></tr>`).join("")}</table></div>`
-      : `<p class="hint">${esc(n)} 這個月沒有回報紀錄</p>`;
+      const day = normDate(r[2]) || (ts ? dayOf(ts.getTime()) : "");
+      if (day.slice(0, 7) === ym) (byDay[day] ||= []).push(r);
+    }
+    const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
+    const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
+    const cells = t.cells.filter(c => c.d <= MODEL.current || byDay[c.d] || c.st === "free").slice().reverse();
+    $("admList").innerHTML = `<div class="stats" style="margin-bottom:12px">${[
+        ["已回報", t.ok], ["缺交", missAll], ["遲交", lateAll], ["用免死抵掉", t.limit ? `${t.cov} / ${t.limit}` : "—"],
+        S.exName ? [S.exName, t.free] : null, [`本月${S.fineName}`, `$${t.owe}${t.manual ? "（手算）" : ""}`],
+      ].filter(Boolean).map(([k, v]) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v" style="font-size:1.1rem">${v}</div></div>`).join("")}</div>
+      <div class="scroll"><table class="edit"><tr><th>日期</th><th>狀態</th><th>送出時間</th><th></th></tr>${cells.map(c => {
+        const st = c.st === "cov" ? c.was : c.st;
+        const recs = byDay[c.d] || [];
+        const status = `<i class="c ${c.st}">${{ ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·", nodata: "?" }[c.st]}</i> ${esc(label[st] || "")}${c.st === "cov" ? "（用免死抵掉）" : ""}`;
+        const times = recs.length ? recs.map(r => `<div>${esc(r[0])}${r[3] && r[3] !== "已完成" ? `（${esc(r[3])}）` : ""}${r[1] !== n ? `（${esc(r[1])}）` : ""}
+          <button type="button" class="ghost sm" data-del='${esc(JSON.stringify([r[0], r[1], r[2]]))}'>刪除</button></div>`).join("") : `<span class="hint">—</span>`;
+        const canAdd = ["miss", "late", "cov", "nodata"].includes(c.st);   // 缺交、遲交的日子可以補登
+        return `<tr><td>${md(c.d)}（${wkOf(c.d)}）</td><td>${status}</td><td style="white-space:normal">${times}</td>
+          <td>${canAdd ? `<button type="button" class="ghost sm" data-add="${c.d}">補登</button>` : ""}</td></tr>`;
+      }).join("")}</table></div>`;
   };
   if (admPick) listFor(admPick);
   $("admNames").onclick = e => {
@@ -911,20 +928,20 @@ function secReports() {
     if (!b) return;
     admPick = b.dataset.name;
     $("admNames").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
-    $("addName").value = admPick;
+    setMsg("secMsg", "");
     listFor(admPick);
   };
   $("admList").onclick = e => {
-    const b = e.target.closest("[data-del]");
-    if (!b) return;
-    const [ts, name, date] = JSON.parse(b.dataset.del);
-    if (!confirm(`確定刪除 ${name} ${ts} 這筆回報？`)) return;
-    saving(() => api({ action: "deleteReport", ts, name, date }), "已刪除");
-  };
-  $("addBtn").onclick = () => {
-    const name = $("addName").value.trim(), date = $("addDate").value;
-    if (!name || !date) return setMsg("secMsg", "請填名字和日期", "err");
-    saving(() => api({ action: "addReport", name, date }), `已補登 ${name} ${md(date)}`);
+    const del = e.target.closest("[data-del]"), add = e.target.closest("[data-add]");
+    if (del) {
+      const [ts, name, date] = JSON.parse(del.dataset.del);
+      if (!confirm(`確定刪除 ${name} ${ts} 這筆回報？`)) return;
+      saving(() => api({ action: "deleteReport", ts, name, date }), "已刪除");
+    } else if (add) {
+      const date = add.dataset.add;
+      if (!confirm(`幫 ${admPick} 補登 ${md(date)}（${wkOf(date)}）？`)) return;
+      saving(() => api({ action: "addReport", name: admPick, date }), `已補登 ${admPick} ${md(date)}`);
+    }
   };
 }
 
