@@ -87,7 +87,7 @@ a{color:var(--accent)}
 .rform + .rform{margin-top:16px}
 /* iPhone 的日期框有自己的最小寬度，會超出畫面 */
 .rform input[type=date]{display:block;min-width:0;max-width:100%;min-height:42px}
-@supports (-webkit-touch-callout: none){.rform input[type=date]{-webkit-appearance:none;appearance:none;line-height:24px;text-align:left}}
+@supports (-webkit-touch-callout: none){.rform input[type=date]{-webkit-appearance:none;appearance:none;line-height:24px;text-align:left;-webkit-min-logical-width:calc(100% - 22px)}}
 .rform input[type=date]::-webkit-date-and-time-value{text-align:left}
 .rform .row2{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 .rform .row2 > div,.rform .field{min-width:0}
@@ -129,7 +129,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
   h1{font-size:1.3rem}
   .sub{font-size:.82rem;margin-bottom:12px}
   .card{padding:12px;border-radius:12px}
-  .tabs button{padding:10px 4px;font-size:.92rem}
+  .tabs{gap:0}
+  .tabs button{padding:10px 2px;font-size:.88rem;white-space:nowrap;min-width:0}
   .stats{grid-template-columns:repeat(3,1fr);gap:8px}
   .stat{padding:10px}
   .stat .v{font-size:1.15rem}
