@@ -167,7 +167,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <h2>編輯者：怎麼修改</h2>
     <ol class="rules">
       <li><b>加人</b>：在「網站設定」的「成員」欄往下加一列名字，「加入日期」填他開始要寫的那天（加入前的日子不會罰）。名字要和他填表單的名字一模一樣。</li>
-      <li><b>有人退出</b>：把那一列刪掉。</li>
+      <li><b>新人</b>：不用手動加。只要他用固定名字填表單兩天以上，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
+      <li><b>有人退出</b>：在成員那一列填「結束日期」，之後就不再計算（直接刪掉的話，網站會因為表單有他的名字又自動加回來）。</li>
       <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
       <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就不再算進未繳累計。</li>
       <li><b>手算調整</b>：網站算的和手算不一樣、要以手算為準時，在「手算名字／手算月份／手算金額」加一列，例如「士軒｜2026/8｜250」。</li>
@@ -393,7 +394,7 @@ function toRecords(rows) {
   for (const r of rows.slice(1)) {
     const raw = (r[nCol] || "").trim();
     const ts = parseDateTime(r[tCol]);
-    if (!raw || !ts) continue;
+    if (!raw || !ts || raw === header[nCol]) continue;
     const tag = (raw.match(/[（(](.*)$/) || [])[1] || "";   // 括號沒打完整也算，例如「承霖(遲交ㄢ」
     if (/重複|練習/.test(tag)) continue;
     const name = raw.replace(/\s*[（(].*$/, "").trim();
@@ -444,6 +445,13 @@ function build({ recs, headerMembers }, s) {
   // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
   const never = members.filter(m => m.periods.every(p => !p.from) && !byName[m.name]).map(m => m.name);
   for (const m of members) if (never.includes(m.name)) m.periods = [{ from: "9999-12-31", to: "" }];
+  // 表單出現新名字、而且有兩天以上的回報 → 自動加成成員，從第一次回報那天開始算
+  // （只出現一天的多半是打錯字，不自動加）
+  const listed = new Set(members.map(m => m.name));
+  for (const n of Object.keys(byName)) {
+    if (listed.has(n) || Object.keys(byName[n].days).length < 2) continue;
+    members.push({ name: n, periods: [{ from: byName[n].first, to: "" }], auto: true });
+  }
   for (const m of members) m.join = m.periods.map(p => p.from).sort()[0] || "";
 
   // 某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」不算缺交
@@ -612,7 +620,11 @@ async function load() {
     $("reload").disabled = false;
   }
   if (MODEL.never.length) notes.push(`表單裡找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認填表單用的名字）`);
-  if (MODEL.unknown.length) notes.push(`表單中有不在成員名單裡的名字，沒有計入：${MODEL.unknown.map(esc).join("、")}`);
+  // 只提醒最近兩個月內自動加入的人
+  const recent = new Date(); recent.setMonth(recent.getMonth() - 1, 1);
+  const autoAdded = MODEL.members.filter(m => m.auto && m.join >= key(recent)).map(m => m.name);
+  if (autoAdded.length) notes.push(`新成員已自動加入：${autoAdded.map(esc).join("、")}（從第一次回報那天開始算）`);
+  if (MODEL.unknown.length) notes.push(`這些名字只回報過一天，可能是打錯字，還沒計入：${MODEL.unknown.map(esc).join("、")}`);
   if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
   showSettings();
 
