@@ -170,7 +170,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
       <li><b>新人</b>：不用手動加。只要他填了表單，網站就會自動把他加進成員，從第一次回報那天開始算。</li>
       <li><b>有人退出</b>：在成員那一列填「結束日期」，之後就不再計算（直接刪掉的話，網站會因為表單有他的名字又自動加回來）。</li>
       <li><b>大堂課免死</b>：在「名字／大堂課第一天／大堂課最後一天」加一列，全部人都去就寫「全部」。</li>
-      <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就不再算進未繳累計。</li>
+      <li><b>每月收完功德金</b>：把「已收款至」改成剛收完的月份（例如 2026/11），那個月就會標成「已收」。</li>
       <li><b>手算調整</b>：網站算的和手算不一樣、要以手算為準時，在「手算名字／手算月份／手算金額」加一列，例如「士軒｜2026/8｜250」。</li>
       <li><b>罰款、每月免死次數、開始計算日</b>：改第 2 列的數字。</li>
     </ol>
@@ -547,40 +547,37 @@ function render() {
   const isPaid = paid && ym <= paid;
   ROWS = MODEL.members.map(m => {
     const t = monthDetail(m, ym);
-    const total = MODEL.months.filter(mm => !paid || mm > paid).reduce((a, mm) => a + monthDetail(m, mm).owe, 0);
-    return { m, t, total };
+    return { m, t };
   }).sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
 
   const start = normDate(SETTINGS.startDate);
   const hist = start && monthDays(ym).some(d => d < start);
   const gap = ROWS.some(r => r.t.nodata);
   const note = [
-    isPaid ? "✅ 這個月的功德金已經收了，不算進未繳累計。" : "",
+    isPaid ? "✅ 這個月的功德金已經收了。" : "",
     hist ? `這個月在開始計算日（${start.slice(5).replace("-", "/")}）之前的日子只顯示回報狀況，不計功德金。` : "",
     gap ? "灰色「?」的日子試算表裡沒有回報資料（可能被刪除），不算缺交。" : "",
   ].filter(Boolean).join("<br>");
   document.querySelectorAll(".month-note").forEach(el => { el.innerHTML = note; el.hidden = !note; });
 
   const sum = ROWS.reduce((a, r) => a + r.t.owe, 0);
-  const sumAll = ROWS.reduce((a, r) => a + r.total, 0);
   const perfect = ROWS.filter(r => r.t.miss + r.t.late + r.t.cov === 0).length;
   const reports = ROWS.reduce((a, r) => a + r.t.ok, 0);
   $("stats").innerHTML = [
     [isPaid ? "本月功德金合計（已收）" : "本月功德金合計", `$${sum.toLocaleString()}`, !isPaid],
     ["本月全勤人數", `${perfect} / ${ROWS.length}`],
     ["本月回報篇數", reports],
-    ["未繳累計", `$${sumAll.toLocaleString()}`, true],
   ].map(([k, v, money]) => `<div class="stat"><div class="k">${k}</div><div class="v ${money ? "money" : ""}">${v}</div></div>`).join("");
 
   const free = parseInt(SETTINGS.freePerMonth, 10) || 0;
   $("legendCov").hidden = !free;
-  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th><th class="num">未繳累計</th></tr>` +
-    ROWS.map(({ m, t, total }) => {
+  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th></tr>` +
+    ROWS.map(({ m, t }) => {
       const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
       return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll}</td><td class="num">${lateAll}</td>
       ${free ? `<td class="num">${t.limit ? `${t.cov} / ${t.limit}` : "—"}</td>` : ""}<td class="num">${t.free}</td>
-      <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
+      <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td></tr>`;
     }).join("");
 
   const wk = "日一二三四五六";
@@ -596,9 +593,9 @@ function downloadExcel() {
   const days = monthDays(ym);
   const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "", nodata: "?" };
   const q = v => `"${String(v).replace(/"/g, '""')}"`;
-  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", "未繳累計", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
-  for (const { m, t, total } of ROWS)
-    lines.push([m.name, t.ok, t.miss + t.late + t.cov, t.cov, t.free, t.owe, total, ...t.cells.map(c => label[c.st])]);
+  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
+  for (const { m, t } of ROWS)
+    lines.push([m.name, t.ok, t.miss + t.late + t.cov, t.cov, t.free, t.owe, ...t.cells.map(c => label[c.st])]);
   const csv = "﻿" + lines.map(l => l.map(q).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
