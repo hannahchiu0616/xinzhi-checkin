@@ -113,6 +113,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 table.edit td{padding:4px;border:0}
 table.edit th{padding:4px}
 table.edit input{width:100%;min-width:110px}
+table.edit input:disabled{background:transparent;border-color:transparent;color:var(--ink);-webkit-text-fill-color:var(--ink);opacity:1}
 .row-act{white-space:nowrap}
 button.sm{padding:4px 9px;font-size:.85rem}
 .edit-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
@@ -786,24 +787,26 @@ function secSettings() {
 }
 
 // 通用表格編輯：一列一筆，可以新增、刪除、排序，按儲存整份寫回去
-function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy }) {
+function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy, sortKey, locked }) {
   const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
   $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
     <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>
     <div class="edit-actions"><button type="button" class="ghost" data-act="add">＋ 新增一列</button><button type="button" data-act="save">儲存</button></div>
     <p class="hint msg" id="secMsg"></p>`;
   const tb = $("adminSec").querySelector("tbody");
-  const addRow = r => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = cols.map((c, i) => `<td><input type="${c.type || "text"}" value="${esc(fmt(c, r[i]))}" ${c.list ? `list="${c.list}"` : ""} placeholder="${esc(c.ph || "")}"></td>`).join("") +
-      `<td class="row-act">${reorder ? `<button type="button" class="ghost sm" data-act="up" title="上移">↑</button> <button type="button" class="ghost sm" data-act="down" title="下移">↓</button> ` : ""}<button type="button" class="ghost sm" data-act="del" title="刪除">✕</button></td>`;
+  // locked：平常只顯示，按「修改」才能改那一列（新增的一列直接可以改）
+  const addRow = (r, editing) => {
+    const tr = document.createElement("tr"), lock = locked && !editing;
+    tr.innerHTML = cols.map((c, i) => `<td><input type="${c.type || "text"}" value="${esc(fmt(c, r[i]))}" ${c.list ? `list="${c.list}"` : ""} placeholder="${esc(c.ph || "")}" ${lock ? "disabled" : ""}></td>`).join("") +
+      `<td class="row-act">${lock ? `<button type="button" class="ghost sm" data-act="edit">修改</button>` : ""}${reorder ? `<button type="button" class="ghost sm" data-act="up" title="上移">↑</button> <button type="button" class="ghost sm" data-act="down" title="下移">↓</button> ` : ""}<button type="button" class="ghost sm" data-act="del" title="刪除" ${lock ? "hidden" : ""}>✕</button></td>`;
     tb.appendChild(tr);
     return tr;
   };
   if (groupBy) {
     // 依月份分組，最新的月份在最上面
     let last = null;
-    (rows || []).map(r => ({ r, g: groupBy(r) })).sort((a, b) => a.g < b.g ? 1 : a.g > b.g ? -1 : 0).forEach(({ r, g }) => {
+    const sk = sortKey || groupBy;   // 越近的越上面
+    (rows || []).map(r => ({ r, g: groupBy(r), s: sk(r) })).sort((a, b) => a.s < b.s ? 1 : a.s > b.s ? -1 : 0).forEach(({ r, g }) => {
       if (g !== last) {
         const h = document.createElement("tr");
         h.innerHTML = `<td colspan="${cols.length + 1}" style="padding-top:12px"><b>${g ? `${g.slice(0, 4)} 年 ${+g.slice(5)} 月` : "沒有日期"}</b></td>`;
@@ -818,9 +821,15 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, gro
     if (!b) return;
     const tr = b.closest("tr"), act = b.dataset.act;
     if (act === "add") {
-      const nr = addRow(newRow ? newRow() : []);
+      const nr = addRow(newRow ? newRow() : [], true);
       if (groupBy) tb.prepend(nr);   // 分組的表格：新的一列放最上面
       nr.querySelector("input").focus();
+    }
+    else if (act === "edit") {
+      tr.querySelectorAll("input").forEach(i => i.disabled = false);
+      tr.querySelector('[data-act="del"]').hidden = false;
+      b.remove();
+      tr.querySelector("input").focus();
     }
     else if (act === "del") tr.remove();
     else if (act === "up" && tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
@@ -851,7 +860,7 @@ function secPauses() {
 }
 function secEx() {
   const n = SETTINGS.exName || "免除";
-  editor({ title: n, tab: "免除", rows: DATA["免除"], newRow: () => ["", "", ""], groupBy: r => normDate(r[1]).slice(0, 7),
+  editor({ title: n, tab: "免除", rows: DATA["免除"], newRow: () => ["", "", ""], groupBy: r => normDate(r[1]).slice(0, 7), sortKey: r => normDate(r[1]) + normDate(r[2]), locked: true,
     hint: `${n}期間不用做${esc(SETTINGS.task)}${SETTINGS.exBefore ? `（從第一天的前 ${SETTINGS.exBefore} 天開始）` : ""}。名字寫「全部」＝所有人。成員自己也可以在回報專區登記。`,
     cols: [{ ...nameCol, ph: "名字或「全部」" }, { label: "第一天", type: "date" }, { label: "最後一天", type: "date" }] });
 }
