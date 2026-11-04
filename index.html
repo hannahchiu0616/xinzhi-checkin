@@ -350,9 +350,9 @@ function toRecords(rows) {
     const raw = (r[nCol] || "").trim();
     const ts = parseDateTime(r[tCol]);
     if (!raw || !ts) continue;
-    const tag = (raw.match(/[（(]([^)）]*)[)）]/) || [])[1] || "";
+    const tag = (raw.match(/[（(](.*)$/) || [])[1] || "";   // 括號沒打完整也算，例如「承霖(遲交ㄢ」
     if (/重複|練習/.test(tag)) continue;
-    const name = raw.replace(/\s*[（(][^)）]*[)）]\s*/g, "").trim();
+    const name = raw.replace(/\s*[（(].*$/, "").trim();
     // 中午 12:00:59 以前都還算前一天（跟手算時的寬容一致）
     let day = key(new Date(ts.getTime() - 12 * 3600e3 - GRACE_MS)), late = false;
     const claimed = dCol >= 0 ? normDate(r[dCol]) : "";
