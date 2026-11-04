@@ -231,6 +231,7 @@ const CONFIG = {
   archiveGids: [],             // 舊回覆分頁（不再使用）
   reportTab: "回報",           // 網站回報寫在設定試算表的這個分頁
   reportApi: "",               // Apps Script 網頁應用程式網址（apps-script.gs 部署後貼上）
+  formUntil: "2026-11-03",     // 舊 Google 表單的資料只算到這一天，之後改用網站回報
   startDate: "2026-06-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
@@ -712,6 +713,7 @@ async function load() {
     if ((!rows || rows.length < 2) && !(webRows && webRows.length > 1)) throw new Error("試算表沒有資料。");
     // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
     const main = rows && rows.length > 1 ? toRecords(rows) : { recs: [], headerMembers: [] }, seen = new Set();
+    if (CONFIG.formUntil) main.recs = main.recs.filter(r => r.day <= CONFIG.formUntil);
     // 網站回報（設定試算表「回報」分頁；分頁不存在時 Google 會回傳別的分頁，靠「狀態」欄判斷）
     if (webRows && webRows.length > 1 && webRows[0].some(h => /^狀態$/.test(String(h).trim()))) {
       try { main.recs.push(...toRecords(webRows).recs); } catch (e) {}
