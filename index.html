@@ -786,7 +786,7 @@ function secSettings() {
 }
 
 // 通用表格編輯：一列一筆，可以新增、刪除、排序，按儲存整份寫回去
-function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave }) {
+function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave, groupBy }) {
   const fmt = (c, v) => c.type === "date" ? normDate(v) : c.type === "month" ? normMonth(v) : (v || "");
   $("adminSec").innerHTML = `<h2>${title}</h2>${hint ? `<p class="hint" style="margin-bottom:10px">${hint}</p>` : ""}
     <div class="scroll"><table class="edit"><thead><tr>${cols.map(c => `<th>${c.label}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table></div>
@@ -800,12 +800,28 @@ function editor({ title, hint, tab, cols, rows, newRow, reorder, beforeSave }) {
     tb.appendChild(tr);
     return tr;
   };
-  (rows || []).forEach(addRow);
+  if (groupBy) {
+    // 依月份分組，最新的月份在最上面
+    let last = null;
+    (rows || []).map(r => ({ r, g: groupBy(r) })).sort((a, b) => a.g < b.g ? 1 : a.g > b.g ? -1 : 0).forEach(({ r, g }) => {
+      if (g !== last) {
+        const h = document.createElement("tr");
+        h.innerHTML = `<td colspan="${cols.length + 1}" style="padding-top:12px"><b>${g ? `${g.slice(0, 4)} 年 ${+g.slice(5)} 月` : "沒有日期"}</b></td>`;
+        tb.appendChild(h);
+        last = g;
+      }
+      addRow(r);
+    });
+  } else (rows || []).forEach(addRow);
   $("adminSec").onclick = e => {
     const b = e.target.closest("button[data-act]");
     if (!b) return;
     const tr = b.closest("tr"), act = b.dataset.act;
-    if (act === "add") addRow(newRow ? newRow() : []).querySelector("input").focus();
+    if (act === "add") {
+      const nr = addRow(newRow ? newRow() : []);
+      if (groupBy) tb.prepend(nr);   // 分組的表格：新的一列放最上面
+      nr.querySelector("input").focus();
+    }
     else if (act === "del") tr.remove();
     else if (act === "up" && tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
     else if (act === "down" && tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
@@ -835,7 +851,7 @@ function secPauses() {
 }
 function secEx() {
   const n = SETTINGS.exName || "免除";
-  editor({ title: n, tab: "免除", rows: DATA["免除"], newRow: () => ["", "", ""],
+  editor({ title: n, tab: "免除", rows: DATA["免除"], newRow: () => ["", "", ""], groupBy: r => normDate(r[1]).slice(0, 7),
     hint: `${n}期間不用做${esc(SETTINGS.task)}${SETTINGS.exBefore ? `（從第一天的前 ${SETTINGS.exBefore} 天開始）` : ""}。名字寫「全部」＝所有人。成員自己也可以在回報專區登記。`,
     cols: [{ ...nameCol, ph: "名字或「全部」" }, { label: "第一天", type: "date" }, { label: "最後一天", type: "date" }] });
 }
