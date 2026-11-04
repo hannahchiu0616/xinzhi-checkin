@@ -599,7 +599,10 @@ function render() {
   ROWS = MODEL.members.filter(m => !MODEL.exitedBefore(m, ym + "-01")).map(m => {
     const t = monthDetail(m, ym);
     return { m, t };
-  }).sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
+  })
+  // 這個月整個月都不計算（還沒加入／已退出）而且沒有金額的人不顯示
+  .filter(r => r.t.owe || r.t.cells.some(c => c.st !== "na"))
+  .sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
 
   const start = normDate(SETTINGS.startDate);
   const hist = start && monthDays(ym).some(d => d < start);
