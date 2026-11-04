@@ -732,7 +732,7 @@ $("loginEmail").onkeydown = e => { if (e.key === "Enter") $("loginBtn").click();
 let ADMIN = null, adminSec = "settings";
 const SECTIONS = [
   ["settings", "基本設定"], ["members", "成員"], ["pauses", "退出／休息"], ["ex", "免除"], ["reports", "回報管理"],
-  ["overrides", "手算調整"], ["admins", "管理員"], ["log", "修改紀錄"],
+  ["admins", "管理員"], ["log", "修改紀錄"],
 ];
 async function openAdmin() {
   $("adminEmail").textContent = ME;
