@@ -181,11 +181,12 @@ h2{font-size:1.1rem;margin:0 0 12px}
 const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
-  archiveGids: [],             // 舊回覆分頁（不再使用，從 10 月開始算）
-  startDate: "2026-10-01",
+  archiveGids: [],             // 舊回覆分頁（不再使用）
+  startDate: "2026-09-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
   fine: 50,
   freePerMonth: 4,
+  freeFrom: "2026-10",        // 每月免死次數從這個月開始（9 月沒有）
   members: `
 汎汎
 文鴻
@@ -214,6 +215,7 @@ Mina
 韋甄
 姿妤`,
   exemptions: `
+韋甄,2026-09-02,2026-09-30
 宇熙,2026-10-22,2026-10-25
 家瑋,2026-10-22,2026-10-25
 美琪,2026-10-22,2026-10-25
@@ -311,10 +313,11 @@ function readSettingsTab(rows) {
   const col = re => h.findIndex(x => re.test(x));
   const iStart = col(/開始計算日/), iFree = col(/免死次數/), iFine = col(/罰款|功德金/);
   const iName = col(/^名字$/), iFrom = col(/第一天|開始日/), iTo = col(/最後一天|結束日/);
-  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iPaid = col(/已收款/);
+  const iMember = col(/^成員$/), iJoin = col(/加入日期/), iPaid = col(/已收款/), iFreeFrom = col(/免死從/);
   if ([iStart, iFree, iFine, iName, iMember, iPaid].every(i => i < 0)) return null;
   const s = {}, first = rows[1] || [];
   if (iPaid >= 0 && first[iPaid]) s.paidThrough = first[iPaid];
+  if (iFreeFrom >= 0 && first[iFreeFrom]) s.freeFrom = first[iFreeFrom];
   if (iMember >= 0)
     s.members = rows.slice(1).filter(r => (r[iMember] || "").trim())
       .map(r => [r[iMember].trim(), iJoin >= 0 ? r[iJoin] : ""].join(",")).join("\n");
@@ -447,7 +450,8 @@ function monthDays(ym) {
 // 依日期順序計算，每月前 N 次缺交（含遲交）用免死次數抵掉
 // 開始計算日之前的日子只顯示回報狀況，不計功德金
 function monthDetail(m, ym) {
-  const free = Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
+  const ff = String(SETTINGS.freeFrom || "").match(/(\d{4})\D+(\d{1,2})/) || [];
+  const free = ff[1] && ym < `${ff[1]}-${pad(ff[2])}` ? 0 : Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
   const start = normDate(SETTINGS.startDate);
   const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, nodata: 0, billed: 0, cells: [] };
   for (const d of monthDays(ym)) {
