@@ -79,8 +79,14 @@ a{color:var(--accent)}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .panel[hidden]{display:none}
 .report{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-decoration:none;color:var(--ink);border-color:var(--accent)}
-.report-btn{background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
-.report:hover .report-btn{filter:brightness(1.1)}
+.report-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:700;white-space:nowrap}
+.report-btn:hover{filter:brightness(1.1)}
+.report-btn:disabled{opacity:.6;filter:none}
+.report-row{display:flex;gap:8px;flex-wrap:wrap}
+.report-row select{min-width:120px;font-size:1rem}
+.report-msg{flex-basis:100%;margin:0}
+.report-msg.ok{color:var(--ok);font-weight:600}
+.report-msg.err{color:var(--bad);font-weight:600}
 .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 4px}
 .link-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);background:var(--bg);transition:border-color .15s}
 .link-card:hover{border-color:var(--accent)}
@@ -129,10 +135,15 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </section>
 
   <section class="panel" data-panel="daily">
-  <a class="card report" href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">
-    <span><b>寫完觀心書了嗎？</b><br><span class="hint">隔天中午 12:00 前填表單回報</span></span>
-    <span class="report-btn">填表單回報 →</span>
-  </a>
+  <form class="card report" id="reportForm">
+    <span><b>寫完觀心書了嗎？</b><br><span class="hint" id="reportHint">隔天中午 12:00 前回報</span></span>
+    <span class="report-row">
+      <select id="reportName" required><option value="">選擇名字</option></select>
+      <button type="submit" class="report-btn" id="reportBtn">我已完成 ✅ 送出回報</button>
+    </span>
+    <span class="hint report-msg" id="reportMsg">也可以用 <a href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">Google 表單</a> 回報</span>
+  </form>
+  <iframe name="reportSink" id="reportSink" hidden></iframe>
 
   <div class="card">
     <h2>定課規則</h2>
@@ -550,7 +561,7 @@ function build({ recs, headerMembers }, s) {
     const last = m.periods[m.periods.length - 1];
     return !!(last && last.to && last.to < day);
   }
-  return { members, status, months, unknown, never, pauses, exitedBefore };
+  return { members, status, months, unknown, never, pauses, exitedBefore, byName, lastTs, current };
 }
 
 function monthDays(ym) {
@@ -703,7 +714,81 @@ async function load() {
   showSettings();
   $("updated").textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
   render();
+  showReport();
 }
+
+/* ---------- 網站直接回報（背後送進同一份 Google 表單） ---------- */
+const FORM = {
+  action: "https://docs.google.com/forms/d/e/1FAIpQLSc0phHwYqcs0WPKklQhrpbEVePiLPX9lcODbEjhHI1a0TAIJw/formResponse",
+  name: "entry.500777910",
+  done: ["entry.514448211", "我已完成✅"],
+};
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+let reportSentAt = 0;
+
+function reportMsg(text, cls) { const el = $("reportMsg"); el.className = "hint report-msg " + (cls || ""); el.innerHTML = text; }
+
+function showReport() {
+  // 名字選項跟 Google 表單一致（表單裡有的名字才送得進去）
+  const fm = SETTINGS.formDb && SETTINGS.formDb.members;
+  const names = fm ? Object.keys(fm).filter(n => { const ps = fm[n]; return !ps[ps.length - 1].to; })
+    : MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
+  const sel = $("reportName"), keep = sel.value || store.get("reportName");
+  sel.innerHTML = `<option value="">選擇名字</option>` + names.map(n => `<option>${esc(n)}</option>`).join("");
+  if (names.includes(keep)) sel.value = keep;
+  updateReportHint();
+}
+
+function updateReportHint() {
+  const day = key(new Date(Date.now() - 12 * 3600e3 - GRACE_MS));
+  const wk = "日一二三四五六"[fromKey(day).getDay()];
+  const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+  const n = $("reportName").value;
+  const done = n && MODEL && MODEL.byName[n]?.days[day] === "ok";
+  $("reportHint").textContent = done
+    ? `${n} 已經回報過 ${md(day)}（${wk}）的觀心書了 ✓`
+    : `現在回報算 ${md(day)}（${wk}）的觀心書，${md(addDays(day, 1))} 中午 12:00 截止`;
+}
+
+$("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReportHint(); };
+$("reportForm").onsubmit = e => {
+  e.preventDefault();
+  const name = $("reportName").value;
+  if (!name) return;
+  store.set("reportName", name);
+  // 用隱藏的 iframe 送出，畫面不會跳到 Google
+  const f = document.createElement("form");
+  f.method = "POST"; f.action = FORM.action; f.target = "reportSink"; f.hidden = true;
+  for (const [k, v] of [[FORM.name, name], FORM.done]) {
+    const i = document.createElement("input"); i.name = k; i.value = v; f.appendChild(i);
+  }
+  document.body.appendChild(f);
+  reportSentAt = Date.now();
+  $("reportBtn").disabled = true;
+  reportMsg("送出中…");
+  f.submit();
+  f.remove();
+};
+$("reportSink").onload = async () => {
+  if (!reportSentAt) return;
+  const name = $("reportName").value, sentAt = reportSentAt;
+  reportSentAt = 0;
+  reportMsg("已送出，確認中…");
+  // 重新讀試算表，確認真的有收到這筆
+  for (let i = 0; i < 4; i++) {
+    await new Promise(r => setTimeout(r, 2500));
+    await load();
+    if ((MODEL?.lastTs[name] || 0) >= sentAt - 120e3) {
+      $("reportBtn").disabled = false;
+      return reportMsg(`✅ 收到了！${esc(name)} ${new Date(MODEL.lastTs[name]).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" })} 回報成功`, "ok");
+    }
+  }
+  $("reportBtn").disabled = false;
+  reportMsg(`還沒在試算表看到這筆回報，請等一下按「重新整理」確認，或改用 <a href="https://forms.gle/HJnrKx9KFrrmrdAz7" target="_blank" rel="noopener">Google 表單</a> 回報`, "err");
+};
 
 function showSettings() {
   // 只列出跟目前選的月份有重疊的大堂課，同一段期間的人合併成一行
