@@ -89,7 +89,7 @@ a{color:var(--accent)}
 .mine{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
 .mine span{text-align:center;font-size:.75rem;color:var(--muted)}
 .report-msg{margin:10px 0 0}
-body.report-only .toolbar,body.report-only .tabs{display:none}
+body.on-report .toolbar{display:none}
 .report-msg.ok{color:var(--ok);font-weight:600}
 .report-msg.err{color:var(--bad);font-weight:600}
 .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:8px 0 4px}
@@ -124,6 +124,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   </div>
 
   <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="report">回報專區</button>
     <button role="tab" data-tab="daily">每日回報</button>
     <button role="tab" data-tab="summary">本月結算</button>
     <button role="tab" data-tab="settings">設定</button>
@@ -141,7 +142,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 
   <section class="panel" data-panel="report" hidden>
   <form class="card rform" id="reportForm">
-    <h2>每日回報</h2>
+    <h2>寫完觀心書了嗎？</h2>
     <div class="field">
       <label for="reportName">名字</label>
       <select id="reportName" required><option value="">選擇名字</option></select>
@@ -155,14 +156,10 @@ h2{font-size:1.1rem;margin:0 0 12px}
     <p class="hint report-msg" id="reportMsg"></p>
     <div id="reportMine"></div>
   </form>
-  <p class="hint" style="text-align:center"><a href="./">查看大家的回報狀況 →</a></p>
+  <p class="hint" style="text-align:center"><a href="#daily">查看大家的回報狀況 →</a></p>
   </section>
 
   <section class="panel" data-panel="daily">
-  <a class="card report" href="report.html">
-    <span><b>寫完觀心書了嗎？</b><br><span class="hint">隔天中午 12:00 前回報</span></span>
-    <span class="report-btn">去回報 →</span>
-  </a>
 
   <div class="card">
     <h2>定課規則</h2>
@@ -201,9 +198,9 @@ h2{font-size:1.1rem;margin:0 0 12px}
         <span class="hint">退出／休息、大堂課免死、罰款規則，「回報」分頁是大家在網站的回報紀錄。改完回網站按「重新整理」</span>
         <span class="lc-go">開啟 →</span>
       </a>
-      <a class="link-card" href="report.html">
-        <span class="lc-title">每日回報頁</span>
-        <span class="hint">把這個連結發給大家，寫完觀心書在這裡回報</span>
+      <a class="link-card" href="#report">
+        <span class="lc-title">回報專區</span>
+        <span class="hint">大家寫完觀心書在這裡回報，網站一打開就是這一頁</span>
         <span class="lc-go">開啟 →</span>
       </a>
     </div>
@@ -804,22 +801,18 @@ function showSettings() {
 }
 
 function showTab(name) {
-  if (!document.querySelector(`[data-panel="${name}"]`) || name === "report") name = "daily";
+  if (!document.querySelector(`[data-panel="${name}"]`)) name = "report";
   document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== name);
   document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.body.classList.toggle("on-report", name === "report");
 }
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
-// 回報頁（report.html 會轉到 ?p=report）：只顯示回報表單
-const REPORT_ONLY = new URLSearchParams(location.search).get("p") === "report";
-if (REPORT_ONLY) {
-  document.body.classList.add("report-only");
-  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== "report");
-  document.querySelector("h1").textContent = "心之使者每日回報";
-  document.querySelector(".sub").textContent = "寫完觀心書，隔天中午 12:00 前回報";
-  document.title = "心之使者每日回報";
-} else showTab(location.hash.slice(1));
+window.onhashchange = () => showTab(location.hash.slice(1));
+// 舊的 report.html 連結（?p=report）也直接打開回報專區
+showTab(new URLSearchParams(location.search).get("p") || location.hash.slice(1));
 
 $("settingsLink").href = CONFIG.settingsSheetUrl;
+$("reportDate").value = nowDay();
 $("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
