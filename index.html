@@ -86,9 +86,6 @@ a{color:var(--accent)}
 .rform select,.rform input[type=date],.rform input:not([type]){width:100%;font-size:1rem;box-sizing:border-box}
 .rform #reportNew{margin-top:8px}
 .rform .report-btn{width:100%;margin-top:14px;font-size:1.05rem;padding:12px}
-.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.choice label{display:flex;align-items:center;gap:8px;font-weight:600;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;margin:0}
-.choice label:has(input:checked){border-color:var(--accent);background:var(--free-bg)}
 .mine{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
 .mine span{text-align:center;font-size:.75rem;color:var(--muted)}
 .report-msg{margin:10px 0 0}
@@ -151,18 +148,10 @@ h2{font-size:1.1rem;margin:0 0 12px}
       <input id="reportNew" placeholder="輸入你的名字" maxlength="20" hidden>
     </div>
     <div class="field">
-      <label>回報內容</label>
-      <div class="choice">
-        <label><input type="radio" name="reportStatus" value="已完成" checked> 已完成觀心書 ✅</label>
-        <label><input type="radio" name="reportStatus" value="大堂課pass"> 大堂課 pass 🎫</label>
-      </div>
-    </div>
-    <div class="field row2">
-      <div><label for="reportDate" id="reportDateLabel">日期</label><input type="date" id="reportDate" required></div>
-      <div id="reportToWrap" hidden><label for="reportTo">到（最後一天）</label><input type="date" id="reportTo"></div>
+      <label for="reportDate">日期（哪一天的觀心書）</label><input type="date" id="reportDate" required>
     </div>
     <p class="hint" id="reportHint"></p>
-    <button type="submit" class="report-btn" id="reportBtn">送出回報</button>
+    <button type="submit" class="report-btn" id="reportBtn">已完成 ✅ 送出回報</button>
     <p class="hint report-msg" id="reportMsg"></p>
     <div id="reportMine"></div>
   </form>
@@ -182,7 +171,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
         <li>計算時間為當日中午 12 點至隔日中午 12 點，回報時選是哪一天的觀心書</li>
         <li>隔天中午 12 點前 po 出並在網站回報；沒回報視同沒寫，超過時間回報算遲交</li>
         <li>每人每月有 4 次免死金牌，第 5 次缺交起才罰款；一個月收一次功德金</li>
-        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天），回報時選「大堂課 pass」</li>    </ol>
+        <li>有上大堂課的新生、複訓學長有 5 天免死金牌（上課前一天到上課最後一天）</li>    </ol>
   </div>
 
   <div class="card">
@@ -463,7 +452,6 @@ function toRecords(rows) {
   const tCol = Math.max(0, header.findIndex(h => /時間戳記|timestamp/i.test(h)));
   const nCol = header.findIndex((h, i) => i !== tCol && /^(姓名|名字|稱呼|名稱|name)$/i.test(h));
   const dCol = header.findIndex(h => /^(回報|觀心書|統計)?日期$/.test(h));
-  const sCol = header.findIndex(h => /^狀態$/.test(h));
   if (nCol < 0) throw new Error("找不到「姓名」欄位，請確認選到的是表單回應分頁。");
   const headerMembers = header.map(h => (h.match(/^(.+?)\s*[（(]免死[)）]$/) || [])[1]).filter(Boolean);
 
@@ -484,9 +472,7 @@ function toRecords(rows) {
       const deadline = fromKey(addDays(day, 1)); deadline.setHours(12); deadline.setTime(deadline.getTime() + GRACE_MS);
       late = ts > deadline;
     }
-    const pass = sCol >= 0 && /大堂課|pass/i.test(r[sCol] || "");
-    if (pass) late = false;
-    recs.push({ name, day, late, pass, dated: !!claimed, ts: ts.getTime(), id: raw + "|" + ts.getTime() + "|" + day });
+    recs.push({ name, day, late, dated: !!claimed, ts: ts.getTime(), id: raw + "|" + ts.getTime() + "|" + day });
   }
   return { recs, headerMembers };
 }
@@ -511,12 +497,11 @@ function build({ recs, headerMembers }, s) {
     return !dup;
   });
   const byName = {};
-  const rank = { ok: 3, pass: 2, late: 1 };
   for (const r of recs) {
     const p = byName[r.name] ||= { days: {}, first: r.day };
     if (r.day < p.first) p.first = r.day;
-    const v = r.pass ? "pass" : r.late ? "late" : "ok";
-    if (!p.days[r.day] || rank[v] > rank[p.days[r.day]]) p.days[r.day] = v;
+    const prev = p.days[r.day];
+    if (!prev || (prev === "late" && !r.late)) p.days[r.day] = r.late ? "late" : "ok";
   }
 
   // 成員可以寫好幾行：名字,加入日期,結束日期 → 每行是一段計算期間（中間停的日子不計算）
@@ -578,7 +563,6 @@ function build({ recs, headerMembers }, s) {
     if (pauses.some(p => p.name === m.name && day >= p.from && (!p.back || day < p.back))) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
-    if (got === "pass") return "free";
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
     if (day === current) return "now";
     if (noData(day)) return "nodata";
@@ -772,7 +756,6 @@ const nowDay = () => key(new Date(Date.now() - 12 * 3600e3 - GRACE_MS));   // �
 
 function reportMsg(text, cls) { const el = $("reportMsg"); el.className = "hint report-msg " + (cls || ""); el.innerHTML = text; }
 const reportName = () => $("reportName").value === NEW_NAME ? $("reportNew").value.trim() : $("reportName").value;
-const reportStatus = () => document.querySelector("[name=reportStatus]:checked").value;
 
 function showReport() {
   const names = MODEL.members.filter(m => !MODEL.exitedBefore(m, MODEL.current)).map(m => m.name);
@@ -785,21 +768,17 @@ function showReport() {
 }
 
 function updateReport() {
-  const pass = reportStatus() === "大堂課pass";
   $("reportNew").hidden = $("reportName").value !== NEW_NAME;
-  $("reportToWrap").hidden = !pass;
-  $("reportDateLabel").textContent = pass ? "大堂課 pass 第一天" : "日期（哪一天的觀心書）";
-  // 已完成：只能選今天以前；大堂課 pass 可以先填之後的日子
-  $("reportDate").max = pass ? "" : nowDay();
+  $("reportDate").max = nowDay();
   const d = $("reportDate").value, n = reportName();
   let hint = "";
-  if (d && !pass) {
+  if (d) {
     const deadline = fromKey(addDays(d, 1)); deadline.setHours(12, 0, 59);
     hint = Date.now() > deadline
       ? `⚠️ ${md(d)}（${wkOf(d)}）的回報已經超過 ${md(addDays(d, 1))} 中午 12:00，會算遲交`
       : `${md(d)}（${wkOf(d)}）的觀心書，${md(addDays(d, 1))} 中午 12:00 前回報`;
     if (n && MODEL?.byName[n]?.days[d] === "ok") hint = `${n} 已經回報過 ${md(d)}（${wkOf(d)}）了 ✓`;
-  } else if (pass) hint = "上課前一天到上課最後一天都可以 pass，一次填好整段日期就好";
+  }
   $("reportHint").textContent = hint;
   showMine(n);
 }
@@ -817,24 +796,21 @@ function showMine(n) {
 $("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReport(); };
 $("reportNew").oninput = updateReport;
 $("reportDate").onchange = updateReport;
-document.querySelectorAll("[name=reportStatus]").forEach(r => r.onchange = updateReport);
 
 $("reportForm").onsubmit = async e => {
   e.preventDefault();
-  const name = reportName(), status = reportStatus(), date = $("reportDate").value;
-  const to = status === "大堂課pass" && $("reportTo").value ? $("reportTo").value : date;
+  const name = reportName(), date = $("reportDate").value;
   if (!name) return reportMsg("請選擇或輸入名字", "err");
-  if (!date || to < date) return reportMsg("請確認日期", "err");
+  if (!date || date > nowDay()) return reportMsg("請確認日期", "err");
   if (!CONFIG.reportApi) return reportMsg("回報功能還沒設定好，請通知管理員", "err");
   store.set("reportName", $("reportName").value);
   $("reportBtn").disabled = true;
   reportMsg("送出中…");
   try {
-    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify({ name, status, date, to }) });
+    const res = await fetch(CONFIG.reportApi, { method: "POST", body: JSON.stringify({ name, date }) });
     const r = await res.json();
     if (!r.ok) throw new Error(r.error || "送出失敗");
-    const range = to !== date ? `${md(date)}～${md(to)}` : `${md(date)}（${wkOf(date)}）`;
-    reportMsg(`✅ 收到了！${esc(name)} ${range} ${status === "大堂課pass" ? "大堂課 pass" : "已完成"}`, "ok");
+    reportMsg(`✅ 收到了！${esc(name)} ${md(date)}（${wkOf(date)}）已完成`, "ok");
     if ($("reportName").value === NEW_NAME) store.set("reportName", name);
     load();
   } catch (err) {
