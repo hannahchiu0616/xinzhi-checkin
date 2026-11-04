@@ -340,3 +340,9 @@ function fixXinzhiOverrides() {
   log(ss, owner(), "修改手算調整", "補上以前手算的 7 筆金額");
   Logger.log("完成！手算調整 7 筆");
 }
+
+/* ---------- 開啟寄信權限：在編輯器選這個函式按「執行」，Google 會問寄信權限，按允許 ---------- */
+function testMail() {
+  MailApp.sendEmail(owner(), "打卡網站：寄信測試", "收到這封信，代表寄驗證碼的權限已經開好了。");
+  Logger.log("已寄出測試信到 " + owner());
+}
