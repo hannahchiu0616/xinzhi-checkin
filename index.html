@@ -749,7 +749,7 @@ function showMine(n) {
 
 $("reportName").onchange = () => { store.set("reportName", $("reportName").value); updateReport(); };
 $("reportNew").oninput = updateReport;
-$("reportDate").onchange = updateReport;
+$("reportDate").onchange = () => { reportDateTouched = true; updateReport(); };
 
 $("reportForm").onsubmit = async e => {
   e.preventDefault();
@@ -812,7 +812,14 @@ window.onhashchange = () => showTab(location.hash.slice(1));
 showTab(new URLSearchParams(location.search).get("p") || location.hash.slice(1));
 
 $("settingsLink").href = CONFIG.settingsSheetUrl;
+// 預設日期：中午 12 點前是前一天，12 點後是當天；網頁一直開著的話，回到網頁時自動更新（自己改過日期就不動）
+let reportDateTouched = false;
 $("reportDate").value = nowDay();
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || reportDateTouched || $("reportDate").value === nowDay()) return;
+  $("reportDate").value = nowDay();
+  if (MODEL) updateReport();
+});
 $("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
