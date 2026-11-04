@@ -68,6 +68,8 @@ td.zero{color:var(--ok);font-weight:700}
 .legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .legend .c{width:22px;height:22px;line-height:22px;font-size:.72rem;flex:none;text-align:center}
 .c.na{border:1px solid var(--line)}
+.c.nodata{background:var(--none-bg);color:var(--muted)}
+.month-note{margin:-4px 0 12px}
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:12px 0}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0}
@@ -115,6 +117,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 
   <div class="card" style="margin-top:16px">
     <h2>本月結算</h2>
+    <p class="hint month-note" hidden></p>
     <div class="scroll"><table id="summary"></table></div>
   </div>
   </section>
@@ -137,6 +140,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 
   <div class="card">
     <h2>每日回報</h2>
+    <p class="hint month-note" hidden></p>
     <div class="scroll"><table class="grid" id="grid"></table></div>
     <div class="legend">
       <span><i class="c ok">✓</i>已回報</span>
@@ -145,6 +149,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
       <span><i class="c late">遲</i>超過隔日 12:00（視同沒寫）</span>
       <span><i class="c free">免</i>大堂課免死金牌</span>
       <span><i class="c now">…</i>還在計算區間內</span>
+      <span><i class="c nodata">?</i>沒有資料</span>
       <span><i class="c na">·</i>不計算</span>
     </div>
   </div>
@@ -175,6 +180,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
+  archiveGids: ["141416685"],   // 存放舊回覆的分頁（工作表1）
   startDate: "2026-11-01",
   fine: 50,
   freePerMonth: 4,
@@ -191,7 +197,40 @@ const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); re
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /* ---------- 讀取試算表 ---------- */
-// Google 試算表不允許跨網域 fetch，改用 gviz 的 JSONP 方式讀取
+// 主要用 CSV 匯出（會包含被隱藏的列）；讀不到時改用 gviz（會略過隱藏列）
+async function loadRows(url) {
+  const id = (url.match(/\/spreadsheets\/d\/([\w-]+)/) || [])[1];
+  const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1] || "0";
+  try {
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`);
+    if (!res.ok) throw new Error(res.status);
+    const text = await res.text();
+    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error("not csv");
+    return parseCSV(text);
+  } catch (e) {
+    return loadSheet(url);
+  }
+}
+
+function parseCSV(text) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+      else f += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(f); rows.push(row); row = []; f = "";
+    } else f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+
+// gviz 的 JSONP 方式（不受跨網域限制）
 let cbSeq = 0;
 function loadSheet(url, sheetName) {
   const id = (url.match(/\/spreadsheets\/d\/([\w-]+)/) || [])[1];
@@ -292,7 +331,7 @@ function toRecords(rows) {
       const deadline = fromKey(addDays(day, 1)); deadline.setHours(12);
       late = ts > deadline;
     }
-    recs.push({ name, day, late });
+    recs.push({ name, day, late, id: raw + "|" + ts.getTime() });
   }
   return { recs, headerMembers };
 }
@@ -318,7 +357,15 @@ function build({ recs, headerMembers }, s) {
 
   let members = parseLines(s.members).map(([n, j]) => ({ name: n, join: normDate(j) }));
   if (!members.length) members = headerMembers.map(n => ({ name: n, join: "" }));
-  if (!members.length) members = Object.keys(byName).map(n => ({ name: n, join: byName[n].first }));
+  if (!members.length) members = Object.keys(byName).map(n => ({ name: n, join: "" }));
+  // 沒填加入日期的人，從第一次回報那天開始算
+  for (const m of members) if (!m.join && byName[m.name]) m.join = byName[m.name].first;
+
+  // 某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」不算缺交
+  const perDay = {};
+  for (const r of recs) perDay[r.day] = (perDay[r.day] || 0) + 1;
+  const minPerDay = Math.max(3, Math.round(members.length * 0.25));
+  const noData = day => (perDay[day] || 0) < minPerDay;
 
   const ex = parseLines(s.exemptions).map(([n, a, b]) => {
     const st = normDate(a), en = normDate(b) || st;
@@ -326,16 +373,17 @@ function build({ recs, headerMembers }, s) {
   }).filter(Boolean);
 
   function status(m, day) {
-    if (day > current) return "na";
-    if ((start && day < start) || (m.join && day < m.join)) return "na";
+    if (day > current || day < firstDay) return "na";
+    if (m.join && day < m.join) return "na";
     const got = byName[m.name]?.days[day];
     if (got === "ok") return "ok";
     if (ex.some(e => (e.name === "全部" || e.name === m.name) && day >= e.from && day <= e.to)) return "free";
     if (day === current) return "now";
+    if (noData(day)) return "nodata";
     return got === "late" ? "late" : "miss";
   }
 
-  const firstDay = start || recs.map(r => r.day).sort()[0] || current;
+  const firstDay = [start, recs.map(r => r.day).sort()[0]].filter(Boolean).sort()[0] || current;
   const months = [];
   for (let d = fromKey(firstDay.slice(0, 8) + "01"); key(d) <= current; d.setMonth(d.getMonth() + 1))
     months.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
@@ -352,16 +400,20 @@ function monthDays(ym) {
 }
 
 // 依日期順序計算，每月前 N 次缺交（含遲交）用免死次數抵掉
+// 開始計算日之前的日子只顯示回報狀況，不計功德金
 function monthDetail(m, ym) {
   const free = Math.max(0, parseInt(SETTINGS.freePerMonth, 10) || 0);
-  const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, cells: [] };
+  const start = normDate(SETTINGS.startDate);
+  const t = { ok: 0, miss: 0, late: 0, free: 0, cov: 0, nodata: 0, billed: 0, cells: [] };
   for (const d of monthDays(ym)) {
-    let st = MODEL.status(m, d);
-    if ((st === "miss" || st === "late") && t.cov < free) { t.cov++; t.cells.push({ d, st: "cov", was: st }); continue; }
+    const st = MODEL.status(m, d);
+    const billable = !start || d >= start;
+    if (billable && (st === "miss" || st === "late") && t.cov < free) { t.cov++; t.cells.push({ d, st: "cov", was: st }); continue; }
     if (st in t) t[st]++;
+    if (billable && (st === "miss" || st === "late")) t.billed++;
     t.cells.push({ d, st });
   }
-  t.owe = (t.miss + t.late) * (+SETTINGS.fine || 50);
+  t.owe = t.billed * (+SETTINGS.fine || 50);
   return t;
 }
 
@@ -374,7 +426,16 @@ function render() {
     const t = monthDetail(m, ym);
     const total = MODEL.months.reduce((a, mm) => a + monthDetail(m, mm).owe, 0);
     return { m, t, total };
-  }).sort((a, b) => b.t.owe - a.t.owe || a.m.name.localeCompare(b.m.name, "zh-Hant"));
+  }).sort((a, b) => b.t.owe - a.t.owe || (b.t.miss + b.t.late + b.t.cov) - (a.t.miss + a.t.late + a.t.cov) || a.m.name.localeCompare(b.m.name, "zh-Hant"));
+
+  const start = normDate(SETTINGS.startDate);
+  const hist = start && monthDays(ym).some(d => d < start);
+  const gap = ROWS.some(r => r.t.nodata);
+  const note = [
+    hist ? `這個月在開始計算日（${start.slice(5).replace("-", "/")}）之前的日子只顯示回報狀況，不計功德金；當時的功德金以手算結果為準。` : "",
+    gap ? "灰色「?」的日子試算表裡沒有回報資料（可能被刪除），不算缺交。" : "",
+  ].filter(Boolean).join("<br>");
+  document.querySelectorAll(".month-note").forEach(el => { el.innerHTML = note; el.hidden = !note; });
 
   const sum = ROWS.reduce((a, r) => a + r.t.owe, 0);
   const sumAll = ROWS.reduce((a, r) => a + r.total, 0);
@@ -399,8 +460,8 @@ function render() {
     }).join("");
 
   const wk = "日一二三四五六";
-  const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·" };
-  const tip = { ok: "已回報", miss: "缺交", late: "遲交", cov: "用免死次數抵掉", free: "大堂課免死金牌", now: "計算中", na: "不計算" };
+  const sym = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "…", na: "·", nodata: "?" };
+  const tip = { ok: "已回報", miss: "缺交", late: "遲交", cov: "用免死次數抵掉", free: "大堂課免死金牌", now: "計算中", na: "不計算", nodata: "沒有資料" };
   $("grid").innerHTML = `<tr><th class="name">成員</th>${days.map(d => `<th>${+d.slice(8)}<br><small>${wk[fromKey(d).getDay()]}</small></th>`).join("")}</tr>` +
     ROWS.map(({ m, t }) => `<tr><td class="name">${esc(m.name)}</td>${t.cells.map(c =>
       `<td><i class="c ${c.st}" title="${c.d.slice(5).replace("-", "/")} ${tip[c.st]}${c.was === "late" ? "（遲交）" : ""}">${sym[c.st]}</i></td>`).join("")}</tr>`).join("");
@@ -409,7 +470,7 @@ function render() {
 function downloadExcel() {
   const ym = $("month").value;
   const days = monthDays(ym);
-  const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "" };
+  const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "", nodata: "?" };
   const q = v => `"${String(v).replace(/"/g, '""')}"`;
   const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", "累計", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
   for (const { m, t, total } of ROWS)
@@ -427,15 +488,23 @@ async function load() {
   $("reload").disabled = true;
   const notes = [];
   try {
-    const [rows, setRows] = await Promise.all([
-      loadSheet(CONFIG.sheetUrl),
+    const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
+    const [rows, setRows, ...archives] = await Promise.all([
+      loadRows(CONFIG.sheetUrl),
       loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab).catch(() => null),
+      ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
     const fromSheet = setRows && readSettingsTab(setRows);
     if (!fromSheet) notes.push(`試算表裡還沒有「${CONFIG.settingsTab}」分頁，目前使用網站內建的預設設定。`);
     SETTINGS = { ...CONFIG, ...(fromSheet || {}) };
     if (rows.length < 2) throw new Error("試算表沒有資料。");
-    MODEL = build(toRecords(rows), SETTINGS);
+    // 表單回應分頁＋舊資料分頁合併，同一人同一時間戳記的只算一筆
+    const main = toRecords(rows), seen = new Set();
+    for (const a of archives) if (a && a.length > 1) {
+      try { main.recs.push(...toRecords(a).recs); } catch (e) {}
+    }
+    main.recs = main.recs.filter(r => !seen.has(r.id) && seen.add(r.id));
+    MODEL = build(main, SETTINGS);
   } catch (e) {
     $("banner").innerHTML = `<div class="banner err">${esc(e.message)}</div>`;
     return;
@@ -446,7 +515,7 @@ async function load() {
   if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
   showSettings();
 
-  const sel = $("month"), keep = sel.value;
+  const sel = $("month"), keep = sel.value || new URLSearchParams(location.search).get("month");
   sel.innerHTML = MODEL.months.slice().reverse().map(m => `<option value="${m}">${m.replace("-", " 年 ")} 月</option>`).join("");
   if (MODEL.months.includes(keep)) sel.value = keep;
   $("updated").textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
