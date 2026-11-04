@@ -218,6 +218,7 @@ Mina,2026-10-27,2026-10-30
 /* ===================================================================== */
 
 const $ = id => document.getElementById(id);
+const GRACE_MS = 60 * 1000;
 const pad = n => String(n).padStart(2, "0");
 const key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -352,12 +353,13 @@ function toRecords(rows) {
     const tag = (raw.match(/[（(]([^)）]*)[)）]/) || [])[1] || "";
     if (/重複|練習/.test(tag)) continue;
     const name = raw.replace(/\s*[（(][^)）]*[)）]\s*/g, "").trim();
-    let day = key(new Date(ts.getTime() - 12 * 3600e3)), late = false;
+    // 中午 12:00:59 以前都還算前一天（跟手算時的寬容一致）
+    let day = key(new Date(ts.getTime() - 12 * 3600e3 - GRACE_MS)), late = false;
     const claimed = dCol >= 0 ? normDate(r[dCol]) : "";
     if (/遲交/.test(tag)) { day = addDays(day, -1); late = true; }
     else if (claimed) {
       day = claimed;
-      const deadline = fromKey(addDays(day, 1)); deadline.setHours(12);
+      const deadline = fromKey(addDays(day, 1)); deadline.setHours(12); deadline.setTime(deadline.getTime() + GRACE_MS);
       late = ts > deadline;
     }
     recs.push({ name, day, late, id: raw + "|" + ts.getTime() });
@@ -389,6 +391,9 @@ function build({ recs, headerMembers }, s) {
   if (!members.length) members = Object.keys(byName).map(n => ({ name: n, join: "" }));
   // 沒填加入日期的人，從第一次回報那天開始算
   for (const m of members) if (!m.join && byName[m.name]) m.join = byName[m.name].first;
+  // 從來沒有回報紀錄、也沒填加入日期的人先不計算（多半是名字對不上）
+  const never = members.filter(m => !m.join && !byName[m.name]).map(m => m.name);
+  for (const m of members) if (never.includes(m.name)) m.join = "9999-12-31";
 
   // 某天幾乎沒人回報 → 那段資料被刪掉了，標成「沒有資料」不算缺交
   const perDay = {};
@@ -420,7 +425,7 @@ function build({ recs, headerMembers }, s) {
 
   const known = new Set(members.map(m => m.name));
   const unknown = Object.keys(byName).filter(n => !known.has(n) && (!start || Object.keys(byName[n].days).some(d => d >= start)));
-  return { members, status, months, unknown };
+  return { members, status, months, unknown, never };
 }
 
 function monthDays(ym) {
@@ -549,6 +554,7 @@ async function load() {
   } finally {
     $("reload").disabled = false;
   }
+  if (MODEL.never.length) notes.push(`表單裡找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認填表單用的名字）`);
   if (MODEL.unknown.length) notes.push(`表單中有不在成員名單裡的名字，沒有計入：${MODEL.unknown.map(esc).join("、")}`);
   if (notes.length) $("banner").innerHTML = `<div class="banner info">${notes.join("<br>")}</div>`;
   showSettings();
