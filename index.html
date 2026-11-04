@@ -159,7 +159,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card">
     <h2>目前設定</h2>
     <dl class="kv" id="settingsView"></dl>
-    <p class="hint">設定放在試算表的「網站設定」分頁，只有試算表的編輯者可以修改，改完回這裡按「重新整理」。
+    <p class="hint" id="settingsHint">設定放在試算表的「網站設定」分頁，只有試算表的編輯者可以修改，改完回這裡按「重新整理」。
       <a id="sheetLink" target="_blank" rel="noopener">開啟試算表</a></p>
   </div>
 
@@ -183,6 +183,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
 const CONFIG = {
   sheetUrl: "https://docs.google.com/spreadsheets/d/1hr5oli1TrmyN_8CCrJWVdFiL6iayAgd30WuDeSzsKAc/edit#gid=1711970025",
   settingsTab: "網站設定",
+  settingsSheetUrl: "",        // 另外一份「任何人都能編輯」的設定試算表（有填就從這裡讀設定）
   archiveGids: [],             // 舊回覆分頁（不再使用）
   startDate: "2026-06-01",
   paidThrough: "2026-10",     // 這個月（含）以前的功德金已經收了
@@ -614,7 +615,7 @@ async function load() {
     const archiveUrls = CONFIG.archiveGids.map(g => CONFIG.sheetUrl.replace(/gid=\d+/, "gid=" + g));
     const [rows, setRows, formDb, ...archives] = await Promise.all([
       loadRows(CONFIG.sheetUrl),
-      loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab).catch(() => null),
+      (CONFIG.settingsSheetUrl ? loadRows(CONFIG.settingsSheetUrl) : loadSheet(CONFIG.sheetUrl, CONFIG.settingsTab)).catch(() => null),
       fetch("form-members.json?_=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       ...archiveUrls.map(u => loadRows(u).catch(() => null)),
     ]);
@@ -685,7 +686,11 @@ function showTab(name) {
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { history.replaceState(null, "", "#" + b.dataset.tab); showTab(b.dataset.tab); });
 showTab(location.hash.slice(1));
 
-$("sheetLink").href = CONFIG.sheetUrl;
+if (CONFIG.settingsSheetUrl) {
+  $("sheetLink").href = CONFIG.settingsSheetUrl;
+  $("sheetLink").textContent = "修改設定";
+  $("settingsHint").firstChild.textContent = "設定放在另一份試算表，任何人都可以修改，改完回這裡按「重新整理」。";
+} else $("sheetLink").href = CONFIG.sheetUrl;
 $("month").onchange = () => { render(); showSettings(); };
 $("reload").onclick = load;
 $("excel").onclick = () => ROWS.length && downloadExcel();
