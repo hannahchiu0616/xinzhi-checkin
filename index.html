@@ -130,8 +130,8 @@ h2{font-size:1.1rem;margin:0 0 12px}
   .scroll.tall{max-height:72vh;overflow:auto;margin:0 -12px;padding:0 12px 0 0}
   .scroll.tall tr:first-child th{position:sticky;top:0;background:var(--card);z-index:2}
   .scroll.tall tr:first-child th:first-child{left:0;z-index:3}
-  #summary td:first-child,#summary th:first-child{position:sticky;left:0;background:var(--card);z-index:1}
-  #summary th,#summary td{padding:7px 8px}
+  #summaryTable td:first-child,#summaryTable th:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+  #summaryTable th,#summaryTable td{padding:7px 8px}
   .grid th.name,.grid td.name{padding-left:12px}
   .grid th{font-size:.75rem;line-height:1.2}
   .c{width:24px;height:24px;line-height:24px;font-size:.72rem}
@@ -148,10 +148,6 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card toolbar">
     <label for="month">月份</label>
     <select id="month"></select>
-    <span class="spacer"></span>
-    <span id="updated" class="hint"></span>
-    <button id="excel" class="ghost">下載 Excel</button>
-    <button id="reload">重新整理</button>
   </div>
 
   <nav class="tabs" role="tablist">
@@ -167,7 +163,7 @@ h2{font-size:1.1rem;margin:0 0 12px}
   <div class="card" style="margin-top:16px">
     <h2>本月結算</h2>
     <p class="hint month-note" hidden></p>
-    <div class="scroll tall"><table id="summary"></table></div>
+    <div class="scroll tall"><table id="summaryTable"></table></div>
   </div>
   </section>
 
@@ -667,7 +663,7 @@ function render() {
 
   const free = parseInt(SETTINGS.freePerMonth, 10) || 0;
   $("legendCov").hidden = !free;
-  $("summary").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th></tr>` +
+  $("summaryTable").innerHTML = `<tr><th>成員</th><th class="num">已回報</th><th class="num">缺交</th><th class="num">遲交</th>${free ? `<th class="num">已用免死次數</th>` : ""}<th class="num">大堂課免死</th><th class="num">本月功德金${isPaid ? "（已收）" : ""}</th></tr>` +
     ROWS.map(({ m, t }) => {
       const missAll = t.miss + t.cells.filter(c => c.was === "miss").length;
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
@@ -684,25 +680,8 @@ function render() {
       `<td><i class="c ${c.st}" title="${c.d.slice(5).replace("-", "/")} ${tip[c.st]}${c.was === "late" ? "（遲交）" : ""}">${sym[c.st]}</i></td>`).join("")}</tr>`).join("");
 }
 
-function downloadExcel() {
-  const ym = $("month").value;
-  const days = monthDays(ym);
-  const label = { ok: "✓", miss: "✗", late: "遲", cov: "抵", free: "免", now: "", na: "", nodata: "?" };
-  const q = v => `"${String(v).replace(/"/g, '""')}"`;
-  const lines = [["成員", "已回報", "缺交(含遲交)", "已用免死次數", "大堂課免死", "本月功德金", ...days.map(d => `${+d.slice(5, 7)}/${+d.slice(8)}`)]];
-  for (const { m, t } of ROWS)
-    lines.push([m.name, t.ok, t.miss + t.late + t.cov, t.cov, t.free, t.owe, ...t.cells.map(c => label[c.st])]);
-  const csv = "﻿" + lines.map(l => l.map(q).join(",")).join("\r\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = `心之使者打卡_${ym}.csv`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
 async function load() {
   $("banner").innerHTML = "";
-  $("reload").disabled = true;
   const notes = [];
   try {
     const [rows, setRows, webRows] = await Promise.all([
@@ -725,8 +704,6 @@ async function load() {
   } catch (e) {
     $("banner").innerHTML = `<div class="banner err">${esc(e.message)}</div>`;
     return;
-  } finally {
-    $("reload").disabled = false;
   }
   if (MODEL.never.length) notes.push(`找不到這些成員的回報，先不計算：${MODEL.never.map(esc).join("、")}（請確認回報用的名字）`);
   // 只提醒最近兩個月內自動加入的人
@@ -740,7 +717,6 @@ async function load() {
   sel.innerHTML = MODEL.months.slice().reverse().map(m => `<option value="${m}">${m.replace("-", " 年 ")} 月</option>`).join("");
   if (MODEL.months.includes(keep)) sel.value = keep;
   showSettings();
-  $("updated").textContent = "更新於 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
   render();
   showReport();
 }
@@ -942,8 +918,6 @@ document.addEventListener("visibilitychange", () => {
   if (MODEL) updateReport();
 });
 $("month").onchange = () => { render(); showSettings(); };
-$("reload").onclick = load;
-$("excel").onclick = () => ROWS.length && downloadExcel();
 
 load();
 </script>
