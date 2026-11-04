@@ -551,7 +551,7 @@ function render() {
       const lateAll = t.late + t.cells.filter(c => c.was === "late").length;
       return `<tr><td>${esc(m.name)}</td><td class="num">${t.ok}</td><td class="num">${missAll}</td><td class="num">${lateAll}</td>
       ${free ? `<td class="num">${t.limit ? `${t.cov} / ${t.limit}` : "—"}</td>` : ""}<td class="num">${t.free}</td>
-      <td class="num ${t.owe && !isPaid ? "money" : "zero"}"${t.manual ? ` title="以手算為準（網站算 $${t.calc}）"` : ""}>$${t.owe}${t.manual ? "<sup>手算</sup>" : ""}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
+      <td class="num ${t.owe && !isPaid ? "money" : "zero"}">$${t.owe}</td><td class="num ${total ? "money" : ""}">$${total}</td></tr>`;
     }).join("");
 
   const wk = "日一二三四五六";
