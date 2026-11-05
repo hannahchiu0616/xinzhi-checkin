@@ -564,8 +564,11 @@ function render() {
 
 async function load() {
   try {
-    const res = await fetch(`${API}?g=${encodeURIComponent(G)}&_=${Date.now()}`);
-    const d = await res.json();
+    let d;
+    for (let i = 0; i < 3; i++) {   // 連線失敗自動重試
+      try { d = await (await fetch(`${API}?g=${encodeURIComponent(G)}&_=${Date.now()}`)).json(); break; }
+      catch (e) { if (i === 2) throw new Error("連線失敗，請重新整理網頁再試一次"); await new Promise(ok => setTimeout(ok, 1500)); }
+    }
     if (!d.ok) throw new Error(d.error || "讀不到資料");
     DATA = d;
     SETTINGS = readSettings(d);
@@ -714,9 +717,22 @@ const tokKey = () => "tok:" + (OWNER_MODE ? "*" : G);
 let TOKEN = store.get(tokKey()), ME = store.get(tokKey() + ":email");
 let onLogin = () => {};
 
+// Google 後端偶爾會連線失敗：只讀資料的動作自動重試 3 次（寫入的不重試，避免存兩次）
+const READ_ACTIONS = ["adminData", "listGroups", "login", "logout"];
+const NET_ERR = "連線失敗，請再試一次（Google 那邊偶爾會這樣）";
 async function api(body) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify({ g: G, token: TOKEN, admin: OWNER_MODE, ...body }) });
-  const r = await res.json();
+  const tries = READ_ACTIONS.includes(body.action) ? 3 : 1;
+  let r;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(API, { method: "POST", body: JSON.stringify({ g: G, token: TOKEN, admin: OWNER_MODE, ...body }) });
+      r = await res.json();
+      break;
+    } catch (e) {
+      if (i === tries - 1) throw new Error(NET_ERR);
+      await new Promise(ok => setTimeout(ok, 1500));
+    }
+  }
   if (!r.ok) {
     if (/登入已過期|不在管理員|沒有這個群組的管理|只有總管理/.test(r.error || "")) logoutLocal();
     throw new Error(r.error || "失敗");
@@ -760,7 +776,13 @@ const SECTIONS = [
 ];
 async function openAdmin() {
   $("adminEmail").textContent = ME;
-  try { ADMIN = await api({ action: "adminData" }); } catch (e) { $("adminSec").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  $("adminSec").innerHTML = `<p class="hint">讀取中…</p>`;
+  try { ADMIN = await api({ action: "adminData" }); }
+  catch (e) {
+    $("adminSec").innerHTML = `<p class="msg err">${esc(e.message)}</p><button type="button" class="ghost" id="retryAdmin" style="margin-top:10px">重試</button>`;
+    $("retryAdmin").onclick = openAdmin;
+    return;
+  }
   showSection(adminSec);
 }
 function showSection(id) {
