@@ -102,10 +102,15 @@ function doGet(e) {
 
 /* ---------- 寫資料 ---------- */
 function doPost(e) {
+  // 只有會寫入的動作才排隊（讀資料、登入不用等），等太久也回 JSON，網站才看得到原因
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  let locked = false;
   try {
     const p = JSON.parse(e.postData.contents || "{}");
+    if (["adminData", "listGroups", "login", "logout"].indexOf(p.action) < 0) {
+      if (!lock.tryLock(25000)) throw new Error("現在太多人同時送出，請再按一次");
+      locked = true;
+    }
     p.g = p.g || "xinzhi";   // 舊版網頁沒帶群組代碼
     const fn = ACTIONS[p.action || (p.type === "class" ? "class" : "report")];
     if (!fn) throw new Error("不支援的動作");
@@ -113,7 +118,7 @@ function doPost(e) {
   } catch (err) {
     return out({ ok: false, error: err.message || String(err) });
   } finally {
-    lock.releaseLock();
+    if (locked) lock.releaseLock();
   }
 }
 
